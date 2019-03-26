@@ -39,8 +39,6 @@ class Layer;
 class Tile;
 class ObjectTemplate;
 
-namespace Internal {
-
 class MapDocument;
 class MapScene;
 class ToolManager;
@@ -74,8 +72,6 @@ public:
                  const QKeySequence &shortcut,
                  QObject *parent = nullptr);
 
-    virtual ~AbstractTool() {}
-
     QString name() const;
     void setName(const QString &name);
 
@@ -95,9 +91,7 @@ public:
     void setEnabled(bool enabled);
 
     ToolManager *toolManager() const;
-
     Tile *tile() const;
-
     ObjectTemplate *objectTemplate() const;
 
     /**
@@ -165,8 +159,6 @@ public:
 
 public slots:
     void setMapDocument(MapDocument *mapDocument);
-    void setTile(Tile *tile);
-    void setObjectTemplate(ObjectTemplate *objectTemplate);
 
 protected:
     /**
@@ -207,10 +199,8 @@ private:
     QString mStatusInfo;
     QCursor mCursor;
     bool mEnabled;
-    ToolManager *mToolManager;
-    Tile *mTile;
-    ObjectTemplate *mObjectTemplate;
 
+    ToolManager *mToolManager;
     MapDocument *mMapDocument;
 };
 
@@ -268,27 +258,6 @@ inline ToolManager *AbstractTool::toolManager() const
     return mToolManager;
 }
 
-inline Tile *AbstractTool::tile() const
-{
-    return mTile;
-}
-
-inline void AbstractTool::setTile(Tile *tile)
-{
-    mTile = tile;
-}
-
-inline ObjectTemplate *AbstractTool::objectTemplate() const
-{
-    return mObjectTemplate;
-}
-
-inline void AbstractTool::setObjectTemplate(ObjectTemplate *objectTemplate)
-{
-    mObjectTemplate = objectTemplate;
-}
-
-} // namespace Internal
 } // namespace Tiled
 
-Q_DECLARE_METATYPE(Tiled::Internal::AbstractTool*)
+Q_DECLARE_METATYPE(Tiled::AbstractTool*)

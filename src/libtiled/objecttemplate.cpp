@@ -30,7 +30,6 @@
 #include "objecttemplate.h"
 
 #include "objecttemplateformat.h"
-#include "tilesetmanager.h"
 
 namespace Tiled {
 
@@ -42,35 +41,41 @@ ObjectTemplate::ObjectTemplate()
 ObjectTemplate::ObjectTemplate(const QString &fileName)
     : Object(ObjectTemplateType)
     , mFileName(fileName)
-    , mObject(nullptr)
 {
 }
 
 ObjectTemplate::~ObjectTemplate()
 {
-    setObject(nullptr);
 }
 
 void ObjectTemplate::setObject(const MapObject *object)
 {
-    MapObject *oldObject = mObject;
+    Tileset *tileset = nullptr;
 
     if (object) {
-        if (Tileset *tileset = object->cell().tileset())
-            TilesetManager::instance()->addReference(tileset->sharedPointer());
-
-        mObject = object->clone();
+        tileset = object->cell().tileset();
+        mObject.reset(object->clone());
         mObject->markAsTemplateBase();
     } else {
-        mObject = nullptr;
+        mObject.reset();
     }
 
-    if (oldObject) {
-        if (Tileset *tileset = oldObject->cell().tileset())
-            TilesetManager::instance()->removeReference(tileset->sharedPointer());
+    if (tileset)
+        mTileset = tileset->sharedPointer();
+    else
+        mTileset.reset();
+}
 
-        delete oldObject;
-    }
+void ObjectTemplate::setObject(std::unique_ptr<MapObject> &&object)
+{
+    Q_ASSERT(object);
+    mObject = std::move(object);
+
+    Tileset *tileset = mObject->cell().tileset();
+    if (tileset)
+        mTileset = tileset->sharedPointer();
+    else
+        mTileset.reset();
 }
 
 void ObjectTemplate::setFormat(ObjectTemplateFormat *format)

@@ -35,7 +35,6 @@ class QtVariantProperty;
 class QtVariantPropertyManager;
 
 namespace Tiled {
-namespace Internal {
 
 class ObjectTypesModel;
 
@@ -45,7 +44,7 @@ class ObjectTypesEditor : public QMainWindow
 
 public:
     explicit ObjectTypesEditor(QWidget *parent = nullptr);
-    ~ObjectTypesEditor();
+    ~ObjectTypesEditor() override;
 
 signals:
     void closed();
@@ -60,8 +59,8 @@ private slots:
     void removeSelectedObjectTypes();
     void objectTypeIndexClicked(const QModelIndex &index);
     void applyObjectTypes();
-    void applyProperty(const QString &name, const QVariant &value);
-    void removeProperty(const QString &name);
+    void applyPropertyToSelectedTypes(const QString &name, const QVariant &value);
+    void removePropertyFromSelectedTypes(const QString &name);
 
     void chooseObjectTypesFile();
     void importObjectTypes();
@@ -70,12 +69,12 @@ private slots:
     void updateProperties();
     void propertyValueChanged(QtProperty *property, const QVariant &val);
 
-    void addProperty();
+    void openAddPropertyDialog();
     void addProperty(const QString &name, const QVariant &value = QVariant());
-    void editCustomProperty(const QString &name);
+    void editProperty(const QString &name);
     void removeProperty();
     void renameProperty();
-    void renameProperty(const QString &name);
+    void renamePropertyTo(const QString &name);
 
     void selectFirstType();
     void currentItemChanged(QtBrowserItem *item);
@@ -104,5 +103,4 @@ private:
     QAction *mRenamePropertyAction;
 };
 
-} // namespace Internal
 } // namespace Tiled

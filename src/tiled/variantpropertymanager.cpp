@@ -28,25 +28,18 @@
 #include <QFileInfo>
 
 namespace Tiled {
-namespace Internal {
 
 class TilesetParametersPropertyType {};
 class AlignmentPropertyType {};
 
 } // namespace Tiled
-} // namespace Internal
 
 // Needs to be up here rather than at the bottom of the file to make a
 // static_assert in qMetaTypeId work (as of C++11)
-Q_DECLARE_METATYPE(Tiled::Internal::TilesetParametersPropertyType)
-Q_DECLARE_METATYPE(Tiled::Internal::AlignmentPropertyType)
-
-#if QT_VERSION < 0x050500
-Q_DECLARE_METATYPE(Qt::Alignment)
-#endif
+Q_DECLARE_METATYPE(Tiled::TilesetParametersPropertyType)
+Q_DECLARE_METATYPE(Tiled::AlignmentPropertyType)
 
 namespace Tiled {
-namespace Internal {
 
 VariantPropertyManager::VariantPropertyManager(QObject *parent)
     : QtVariantPropertyManager(parent)
@@ -323,6 +316,7 @@ void VariantPropertyManager::uninitializeProperty(QtProperty *property)
 {
     mValues.remove(property);
     mStringAttributes.remove(property);
+    m_alignValues.remove(property);
 
     QtProperty *alignH = m_propertyToAlignH.value(property);
     if (alignH) {
@@ -438,5 +432,4 @@ QString VariantPropertyManager::indexVToString(int idx) const
     return tr("Center");
 }
 
-} // namespace Internal
 } // namespace Tiled

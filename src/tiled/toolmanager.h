@@ -30,8 +30,6 @@ namespace Tiled {
 class Tile;
 class ObjectTemplate;
 
-namespace Internal {
-
 class AbstractTool;
 class MapDocument;
 
@@ -63,6 +61,9 @@ public:
     void retranslateTools();
 
     void createShortcuts(QWidget *parent);
+
+    Tile *tile() const;
+    ObjectTemplate *objectTemplate() const;
 
 public slots:
     /**
@@ -126,5 +127,24 @@ inline AbstractTool *ToolManager::selectedTool() const
     return mSelectedTool;
 }
 
-} // namespace Internal
+inline Tile *ToolManager::tile() const
+{
+    return mTile;
+}
+
+inline ObjectTemplate *ToolManager::objectTemplate() const
+{
+    return mObjectTemplate;
+}
+
+inline void ToolManager::setTile(Tile *tile)
+{
+    mTile = tile;
+}
+
+inline void ToolManager::setObjectTemplate(ObjectTemplate *objectTemplate)
+{
+    mObjectTemplate = objectTemplate;
+}
+
 } // namespace Tiled

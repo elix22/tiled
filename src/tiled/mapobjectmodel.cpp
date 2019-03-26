@@ -35,7 +35,6 @@
 #include <QStyle>
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 MapObjectModel::MapObjectModel(QObject *parent):
     QAbstractItemModel(parent),
@@ -271,13 +270,20 @@ QVariant MapObjectModel::headerData(int section, Qt::Orientation orientation,
 
 QModelIndex MapObjectModel::index(Layer *layer) const
 {
+    Q_ASSERT(layer);
     Q_ASSERT(layer->isObjectGroup() || layer->isGroupLayer());
+    Q_ASSERT(layer->map() == mMap);
+
     const int row = filteredChildLayers(layer->parentLayer()).indexOf(layer);
     return createIndex(row, 0, layer);
 }
 
 QModelIndex MapObjectModel::index(MapObject *mapObject, int column) const
 {
+    Q_ASSERT(mapObject);
+    Q_ASSERT(mapObject->objectGroup());
+    Q_ASSERT(mapObject->objectGroup()->map() == mMap);
+
     const int row = mapObject->objectGroup()->objects().indexOf(mapObject);
     return createIndex(row, column, mapObject);
 }
@@ -438,7 +444,9 @@ void MapObjectModel::tileTypeChanged(Tile *tile)
     }
 }
 
-void MapObjectModel::emitObjectsChanged(const QList<MapObject *> &objects, const QList<Column> &columns)
+void MapObjectModel::emitObjectsChanged(const QList<MapObject *> &objects,
+                                        const QList<Column> &columns,
+                                        const QVector<int> &roles)
 {
     emit objectsChanged(objects);
     if (columns.isEmpty())
@@ -446,7 +454,9 @@ void MapObjectModel::emitObjectsChanged(const QList<MapObject *> &objects, const
 
     auto minMaxPair = std::minmax_element(columns.begin(), columns.end());
     for (auto object : objects) {
-        emit dataChanged(index(object, *minMaxPair.first), index(object, *minMaxPair.second));
+        emit dataChanged(index(object, *minMaxPair.first),
+                         index(object, *minMaxPair.second),
+                         roles);
     }
 }
 

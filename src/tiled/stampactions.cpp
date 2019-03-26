@@ -24,7 +24,6 @@
 #include <QToolBar>
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 StampActions::StampActions(QObject *parent) : QObject(parent)
 {
@@ -66,10 +65,6 @@ StampActions::StampActions(QObject *parent) : QObject(parent)
     mRotateRight->setIcon(rotateRightIcon);
 
     languageChanged();
-}
-
-StampActions::~StampActions()
-{
 }
 
 void StampActions::languageChanged()

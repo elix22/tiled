@@ -27,7 +27,6 @@ class QAction;
 class QActionGroup;
 
 namespace Tiled {
-namespace Internal {
 
 class MapDocument;
 
@@ -63,8 +62,9 @@ protected:
     QRegion selectedRegion() { return mSelectedRegion; }
     void setSelectedRegion(QRegion region) { mSelectedRegion = region; }
 
-private:
+    void updateBrushVisibility() override;
 
+private:
     SelectionMode mSelectionMode;
     SelectionMode mDefaultMode;
 
@@ -77,5 +77,4 @@ private:
     QActionGroup *mActionGroup;
 };
 
-} // namespace Internal
 } // namespace Tiled

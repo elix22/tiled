@@ -33,10 +33,7 @@
 
 #include <QObject>
 #include <QList>
-#include <QMap>
 #include <QString>
-#include <QSet>
-#include <QTimer>
 
 namespace Tiled {
 
@@ -59,13 +56,11 @@ public:
     SharedTileset loadTileset(const QString &fileName, QString *error = nullptr);
     SharedTileset findTileset(const QString &fileName) const;
 
-    void addReference(const SharedTileset &tileset);
-    void removeReference(const SharedTileset &tileset);
+    // Only meant to be used by the Tileset class
+    void addTileset(Tileset *tileset);
+    void removeTileset(Tileset *tileset);
 
-    void addReferences(const QVector<SharedTileset> &tilesets);
-    void removeReferences(const QVector<SharedTileset> &tilesets);
-
-    void reloadImages(const SharedTileset &tileset);
+    void reloadImages(Tileset *tileset);
 
     void setReloadTilesetsOnChange(bool enabled);
     bool reloadTilesetsOnChange() const;
@@ -90,8 +85,7 @@ signals:
     void repaintTileset(Tileset *tileset);
 
 private slots:
-    void fileChanged(const QString &path);
-    void fileChangedTimeout();
+    void filesChanged(const QStringList &fileNames);
 
     void advanceTileAnimations(int ms);
 
@@ -99,18 +93,16 @@ private:
     Q_DISABLE_COPY(TilesetManager)
 
     TilesetManager();
-    ~TilesetManager();
+    ~TilesetManager() override;
 
     static TilesetManager *mInstance;
 
     /**
-     * Stores the tilesets and maps them to the number of references.
+     * The list of loaded tilesets (weak references).
      */
-    QMap<SharedTileset, int> mTilesets;
+    QList<Tileset*> mTilesets;
     FileSystemWatcher *mWatcher;
     TileAnimationDriver *mAnimationDriver;
-    QSet<QString> mChangedFiles;
-    QTimer mChangedFilesTimer;
     bool mReloadTilesetsOnChange;
 };
 

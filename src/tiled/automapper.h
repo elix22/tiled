@@ -37,8 +37,6 @@ class MapObject;
 class ObjectGroup;
 class TileLayer;
 
-namespace Internal {
-
 class MapDocument;
 
 struct InputLayer
@@ -84,8 +82,36 @@ class AutoMapper : public QObject
     Q_OBJECT
 
 public:
+    struct Options
+    {
+        /**
+         * Determines if all tiles in all touched layers should be deleted first.
+         */
+        bool deleteTiles = false;
+
+        /**
+         * Whether rules can match when their input region is partially outside
+         * of the map.
+         */
+        bool matchOutsideMap = true;
+
+        /**
+         * Determines if a rule is allowed to overlap itself.
+         */
+        bool noOverlappingRules = false;
+
+        /**
+         * This variable determines, how many overlapping tiles should be used.
+         * The bigger the more area is remapped at an automapping operation.
+         * This can lead to higher latency, but provides a better behavior on
+         * interactive automapping.
+         */
+        int autoMappingRadius = 0;
+    };
+
     /**
      * Constructs an AutoMapper.
+     *
      * All data structures, which only rely on the rules map are setup
      * here.
      *
@@ -102,14 +128,14 @@ public:
      * Checks if the passed \a ruleLayerName is used in this instance
      * of Automapper.
      */
-    bool ruleLayerNameUsed(QString ruleLayerName) const;
+    bool ruleLayerNameUsed(const QString &ruleLayerName) const;
 
     /**
      * Call prepareLoad first! Returns a set of strings describing the tile
      * layers, which could be touched considering the given layers of the
      * rule map.
      */
-    QSet<QString> getTouchedTileLayers() const;
+    QSet<QString> touchedTileLayers() const;
 
     /**
      * This needs to be called directly before the autoMap call.
@@ -337,24 +363,7 @@ private:
      */
     QString mRulePath;
 
-    /**
-     * determines if all tiles in all touched layers should be deleted first.
-     */
-    bool mDeleteTiles;
-
-    /**
-     * This variable determines, how many overlapping tiles should be used.
-     * The bigger the more area is remapped at an automapping operation.
-     * This can lead to higher latency, but provides a better behavior on
-     * interactive automapping.
-     * It defaults to zero.
-     */
-    int mAutoMappingRadius;
-
-    /**
-     * Determines if a rule is allowed to overlap itself.
-     */
-    bool mNoOverlappingRules;
+    Options mOptions;
 
     QSet<QString> mTouchedTileLayers;
     QSet<QString> mTouchedObjectGroups;
@@ -363,5 +372,4 @@ private:
     QString mWarning;
 };
 
-} // namespace Internal
 } // namespace Tiled

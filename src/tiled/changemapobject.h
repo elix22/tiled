@@ -32,8 +32,6 @@ class MapObject;
 class ObjectTemplate;
 class Tile;
 
-namespace Internal {
-
 class MapDocument;
 class MapObjectModel;
 
@@ -68,6 +66,7 @@ struct MapObjectCell
 {
     MapObject *object;
     Cell cell;
+    bool propertyChanged = true;
 };
 
 class ChangeMapObjectCells : public QUndoCommand
@@ -174,5 +173,4 @@ private:
     ObjectTemplate *mObjectTemplate;
 };
 
-} // namespace Internal
 } // namespace Tiled

@@ -27,7 +27,6 @@
 
 namespace Tiled {
 
-namespace Internal {
 
 class MapDocument;
 
@@ -43,7 +42,7 @@ class AutoMapperWrapper : public QUndoCommand
 public:
     AutoMapperWrapper(MapDocument *mapDocument, QVector<AutoMapper*> autoMapper,
                       QRegion *where);
-    ~AutoMapperWrapper();
+    ~AutoMapperWrapper() override;
 
     void undo() override;
     void redo() override;
@@ -56,5 +55,4 @@ private:
     QVector<TileLayer*> mLayersBefore;
 };
 
-} // namespace Internal
 } // namespace Tiled

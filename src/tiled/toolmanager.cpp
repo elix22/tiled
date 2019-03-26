@@ -21,12 +21,12 @@
 #include "toolmanager.h"
 
 #include "abstracttool.h"
+#include "preferences.h"
 
 #include <QAction>
 #include <QShortcut>
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 ToolManager::ToolManager(QObject *parent)
     : QObject(parent)
@@ -40,8 +40,11 @@ ToolManager::ToolManager(QObject *parent)
     , mSelectEnabledToolPending(false)
 {
     mActionGroup->setExclusive(true);
-    connect(mActionGroup, SIGNAL(triggered(QAction*)),
-            this, SLOT(actionTriggered(QAction*)));
+    connect(mActionGroup, &QActionGroup::triggered,
+            this, &ToolManager::actionTriggered);
+
+    connect(Preferences::instance(), &Preferences::languageChanged,
+            this, &ToolManager::retranslateTools);
 }
 
 ToolManager::~ToolManager()
@@ -89,12 +92,12 @@ QAction *ToolManager::registerTool(AbstractTool *tool)
     } else {
         toolAction->setToolTip(tool->name());
     }
-
     toolAction->setEnabled(tool->isEnabled());
+
     mActionGroup->addAction(toolAction);
 
-    connect(tool, SIGNAL(enabledChanged(bool)),
-            this, SLOT(toolEnabledChanged(bool)));
+    connect(tool, &AbstractTool::enabledChanged,
+            this, &ToolManager::toolEnabledChanged);
 
     // Select the first added tool
     if (!mSelectedTool && tool->isEnabled()) {
@@ -149,8 +152,13 @@ void ToolManager::retranslateTools()
         // Update the text, shortcut and tooltip of the action
         action->setText(tool->name());
         action->setShortcut(tool->shortcut());
-        action->setToolTip(QString(QLatin1String("%1 (%2)")).arg(
-                tool->name(), tool->shortcut().toString()));
+        if (!tool->shortcut().isEmpty()) {
+            action->setToolTip(
+                        QString(QLatin1String("%1 (%2)")).arg(tool->name(),
+                                                              tool->shortcut().toString()));
+        } else {
+            action->setToolTip(tool->name());
+        }
     }
 }
 
@@ -174,29 +182,16 @@ void ToolManager::createShortcuts(QWidget *parent)
             // because different tools may use the same shortcut.
             shortcut->setEnabled(action->isEnabled());
             connect(action, &QAction::changed, shortcut, [=]() {
+                shortcut->setKey(action->shortcut());
                 shortcut->setEnabled(action->isEnabled());
             });
 
             connect(shortcut, &QShortcut::activated, action, &QAction::trigger);
 
-            // Unset the shortcut from the action to avoid ambiguous overloads
-            action->setShortcut(QKeySequence());
+            // Limit the context of the shortcut to avoid ambiguous overloads
+            action->setShortcutContext(Qt::WidgetShortcut);
         }
     }
-}
-
-void ToolManager::setTile(Tile *tile)
-{
-    mTile = tile;
-    if (mSelectedTool)
-        mSelectedTool->setTile(mTile);
-}
-
-void ToolManager::setObjectTemplate(ObjectTemplate *objectTemplate)
-{
-    mObjectTemplate = objectTemplate;
-    if (mSelectedTool)
-        mSelectedTool->setObjectTemplate(mObjectTemplate);
 }
 
 void ToolManager::toolEnabledChanged(bool enabled)
@@ -262,8 +257,8 @@ void ToolManager::setSelectedTool(AbstractTool *tool)
         return;
 
     if (mSelectedTool) {
-        disconnect(mSelectedTool, SIGNAL(statusInfoChanged(QString)),
-                   this, SIGNAL(statusInfoChanged(QString)));
+        disconnect(mSelectedTool, &AbstractTool::statusInfoChanged,
+                   this, &ToolManager::statusInfoChanged);
     }
 
     mSelectedTool = tool;
@@ -271,9 +266,7 @@ void ToolManager::setSelectedTool(AbstractTool *tool)
 
     if (mSelectedTool) {
         emit statusInfoChanged(mSelectedTool->statusInfo());
-        connect(mSelectedTool, SIGNAL(statusInfoChanged(QString)),
-                this, SIGNAL(statusInfoChanged(QString)));
-        tool->setTile(mTile);
-        tool->setObjectTemplate(mObjectTemplate);
+        connect(mSelectedTool, &AbstractTool::statusInfoChanged,
+                this, &ToolManager::statusInfoChanged);
     }
 }

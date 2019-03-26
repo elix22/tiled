@@ -20,6 +20,7 @@
 
 #include "document.h"
 
+#include "editableasset.h"
 #include "object.h"
 #include "tile.h"
 
@@ -27,19 +28,33 @@
 #include <QUndoStack>
 
 namespace Tiled {
-namespace Internal {
+
+QList<Document*> Document::sDocumentInstances;
 
 Document::Document(DocumentType type, const QString &fileName,
                    QObject *parent)
     : QObject(parent)
     , mType(type)
     , mFileName(fileName)
-    , mUndoStack(new QUndoStack(this))
     , mCurrentObject(nullptr)
+    , mChangedOnDisk(false)
     , mIgnoreBrokenLinks(false)
 {
-    connect(mUndoStack, &QUndoStack::cleanChanged,
-            this, &Document::modifiedChanged);
+    sDocumentInstances.append(this);
+}
+
+Document::~Document()
+{
+    sDocumentInstances.removeOne(this);
+}
+
+/**
+ * Returns the undo stack of this document. Should be used to push any commands
+ * on that modify the document.
+ */
+QUndoStack *Document::undoStack()
+{
+    return editable()->undoStack();
 }
 
 void Document::setFileName(const QString &fileName)
@@ -57,7 +72,7 @@ void Document::setFileName(const QString &fileName)
  */
 bool Document::isModified() const
 {
-    return !mUndoStack->isClean();
+    return !const_cast<Document*>(this)->undoStack()->isClean();
 }
 
 void Document::setCurrentObject(Object *object)
@@ -112,5 +127,9 @@ void Document::setIgnoreBrokenLinks(bool ignoreBrokenLinks)
     emit ignoreBrokenLinksChanged(ignoreBrokenLinks);
 }
 
-} // namespace Internal
+void Document::setChangedOnDisk(bool changedOnDisk)
+{
+    mChangedOnDisk = changedOnDisk;
+}
+
 } // namespace Tiled

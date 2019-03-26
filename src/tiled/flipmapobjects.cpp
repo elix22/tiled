@@ -28,7 +28,6 @@
 #include <QCoreApplication>
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 FlipMapObjects::FlipMapObjects(MapDocument *mapDocument,
                                const QList<MapObject *> &mapObjects,
@@ -66,10 +65,10 @@ FlipMapObjects::FlipMapObjects(MapDocument *mapDocument,
         }
 
         mOldCellStates.append(object->propertyChanged(MapObject::CellProperty));
-        mNewCellStates.append(true);;
+        mNewCellStates.append(true);
 
         mOldRotationStates.append(object->propertyChanged(MapObject::RotationProperty));
-        mNewRotationStates.append(true);;
+        mNewRotationStates.append(true);
     }
     mObjectsCenter = boundaryObjectsRect.center();
 }

@@ -39,8 +39,8 @@
 
 using namespace Tiled;
 
-ObjectGroup::ObjectGroup()
-    : ObjectGroup(QString(), 0, 0)
+ObjectGroup::ObjectGroup(const QString &name)
+    : ObjectGroup(name, 0, 0)
 {
 }
 
@@ -61,6 +61,11 @@ void ObjectGroup::addObject(MapObject *object)
     object->setObjectGroup(this);
     if (mMap && object->id() == 0)
         object->setId(mMap->takeNextObjectId());
+}
+
+void ObjectGroup::addObject(std::unique_ptr<MapObject> &&object)
+{
+    addObject(object.release());
 }
 
 void ObjectGroup::insertObject(int index, MapObject *object)
@@ -185,16 +190,16 @@ void ObjectGroup::offsetObjects(const QPointF &offset,
     }
 }
 
-bool ObjectGroup::canMergeWith(Layer *other) const
+bool ObjectGroup::canMergeWith(const Layer *other) const
 {
     return other->isObjectGroup();
 }
 
-Layer *ObjectGroup::mergedWith(Layer *other) const
+Layer *ObjectGroup::mergedWith(const Layer *other) const
 {
     Q_ASSERT(canMergeWith(other));
 
-    const ObjectGroup *og = static_cast<ObjectGroup*>(other);
+    const ObjectGroup *og = static_cast<const ObjectGroup*>(other);
 
     ObjectGroup *merged = clone();
     for (const MapObject *mapObject : og->objects())
@@ -252,13 +257,10 @@ QString Tiled::drawOrderToString(ObjectGroup::DrawOrder drawOrder)
     default:
     case ObjectGroup::UnknownOrder:
         return QLatin1String("unknown");
-        break;
     case ObjectGroup::TopDownOrder:
         return QLatin1String("topdown");
-        break;
     case ObjectGroup::IndexOrder:
         return QLatin1String("index");
-        break;
     }
 }
 

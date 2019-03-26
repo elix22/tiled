@@ -34,7 +34,6 @@ class QActionGroup;
 class QComboBox;
 class QMenu;
 class QModelIndex;
-class QSignalMapper;
 class QStackedWidget;
 class QTabBar;
 class QToolBar;
@@ -46,8 +45,6 @@ class Terrain;
 class Tile;
 class TileLayer;
 class Tileset;
-
-namespace Internal {
 
 class Document;
 class MapDocument;
@@ -124,7 +121,7 @@ private slots:
     void tileAnimationChanged(Tile *tile);
 
     void removeTileset();
-    void removeTileset(int index);
+    void removeTilesetAt(int index);
 
     void newTileset();
     void editTileset();
@@ -182,7 +179,6 @@ private:
     QToolButton *mTilesetMenuButton;
     QMenu *mTilesetMenu; //opens on click of mTilesetMenu
     QActionGroup *mTilesetActionGroup;
-    QSignalMapper *mTilesetMenuMapper; //needed due to dynamic content
 
     QComboBox *mZoomComboBox;
 
@@ -190,5 +186,4 @@ private:
     bool mSynchronizingSelection;
 };
 
-} // namespace Internal
 } // namespace Tiled

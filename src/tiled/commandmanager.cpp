@@ -23,6 +23,7 @@
 #include "commanddatamodel.h"
 #include "commanddialog.h"
 #include "logginginterface.h"
+#include "pluginmanager.h"
 #include "utils.h"
 
 #include <QApplication>
@@ -31,15 +32,21 @@
 #include <QMenu>
 
 namespace Tiled {
-namespace Internal {
 
 CommandManager *CommandManager::mInstance;
 
 CommandManager::CommandManager()
     : mModel(new CommandDataModel(this))
-    , mLogger(new LoggingInterface())
+    , mLogger(new LoggingInterface(this))
 {
     updateActions();
+
+    PluginManager::addObject(mLogger);
+}
+
+CommandManager::~CommandManager()
+{
+    PluginManager::removeObject(mLogger);
 }
 
 CommandManager *CommandManager::instance()
@@ -127,5 +134,4 @@ void CommandManager::retranslateUi()
     mEditCommands->setText(tr("Edit Commands..."));
 }
 
-} // namespace Internal
 } // namespace Tiled

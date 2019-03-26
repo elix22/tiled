@@ -21,6 +21,7 @@
 
 #include "mapdocumentactionhandler.h"
 
+#include "actionmanager.h"
 #include "addremovelayer.h"
 #include "addremovemapobject.h"
 #include "changeselectedarea.h"
@@ -46,8 +47,11 @@
 #include <QtCore/qmath.h>
 #include <QStyle>
 
+#include "qtcompat_p.h"
+
+#include <algorithm>
+
 namespace Tiled {
-namespace Internal {
 
 MapDocumentActionHandler *MapDocumentActionHandler::mInstance;
 
@@ -93,15 +97,15 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
     mActionGroupLayers = new QAction(this);
     mActionUngroupLayers = new QAction(this);
 
-    mActionDuplicateLayer = new QAction(this);
-    mActionDuplicateLayer->setShortcut(tr("Ctrl+Shift+D"));
-    mActionDuplicateLayer->setIcon(
+    mActionDuplicateLayers = new QAction(this);
+    mActionDuplicateLayers->setShortcut(tr("Ctrl+Shift+D"));
+    mActionDuplicateLayers->setIcon(
             QIcon(QLatin1String(":/images/16x16/stock-duplicate-16.png")));
 
-    mActionMergeLayerDown = new QAction(this);
+    mActionMergeLayersDown = new QAction(this);
 
-    mActionRemoveLayer = new QAction(this);
-    mActionRemoveLayer->setIcon(
+    mActionRemoveLayers = new QAction(this);
+    mActionRemoveLayers->setIcon(
             QIcon(QLatin1String(":/images/16x16/edit-delete.png")));
 
     mActionSelectPreviousLayer = new QAction(this);
@@ -110,20 +114,25 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
     mActionSelectNextLayer = new QAction(this);
     mActionSelectNextLayer->setShortcut(tr("Ctrl+PgUp"));
 
-    mActionMoveLayerUp = new QAction(this);
-    mActionMoveLayerUp->setShortcut(tr("Ctrl+Shift+Up"));
-    mActionMoveLayerUp->setIcon(
+    mActionMoveLayersUp = new QAction(this);
+    mActionMoveLayersUp->setShortcut(tr("Ctrl+Shift+Up"));
+    mActionMoveLayersUp->setIcon(
             QIcon(QLatin1String(":/images/16x16/go-up.png")));
 
-    mActionMoveLayerDown = new QAction(this);
-    mActionMoveLayerDown->setShortcut(tr("Ctrl+Shift+Down"));
-    mActionMoveLayerDown->setIcon(
+    mActionMoveLayersDown = new QAction(this);
+    mActionMoveLayersDown->setShortcut(tr("Ctrl+Shift+Down"));
+    mActionMoveLayersDown->setIcon(
             QIcon(QLatin1String(":/images/16x16/go-down.png")));
 
     mActionToggleOtherLayers = new QAction(this);
     mActionToggleOtherLayers->setShortcut(tr("Ctrl+Shift+H"));
     mActionToggleOtherLayers->setIcon(
             QIcon(QLatin1String(":/images/16x16/show_hide_others.png")));
+
+    mActionToggleLockOtherLayers = new QAction(this);
+    mActionToggleLockOtherLayers->setShortcut(tr("Ctrl+Shift+L"));
+    mActionToggleLockOtherLayers->setIcon(
+        QIcon(QLatin1String(":/images/16x16/locked.png")));
 
     mActionLayerProperties = new QAction(this);
     mActionLayerProperties->setIcon(
@@ -135,9 +144,9 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
     mActionRemoveObjects = new QAction(this);
     mActionRemoveObjects->setIcon(QIcon(QLatin1String(":/images/16x16/edit-delete.png")));
 
-    Utils::setThemeIcon(mActionRemoveLayer, "edit-delete");
-    Utils::setThemeIcon(mActionMoveLayerUp, "go-up");
-    Utils::setThemeIcon(mActionMoveLayerDown, "go-down");
+    Utils::setThemeIcon(mActionRemoveLayers, "edit-delete");
+    Utils::setThemeIcon(mActionMoveLayersUp, "go-up");
+    Utils::setThemeIcon(mActionMoveLayersDown, "go-down");
     Utils::setThemeIcon(mActionLayerProperties, "document-properties");
     Utils::setThemeIcon(mActionRemoveObjects, "edit-delete");
 
@@ -155,18 +164,47 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
     connect(mActionGroupLayers, &QAction::triggered, this, &MapDocumentActionHandler::groupLayers);
     connect(mActionUngroupLayers, &QAction::triggered, this, &MapDocumentActionHandler::ungroupLayers);
 
-    connect(mActionDuplicateLayer, &QAction::triggered, this, &MapDocumentActionHandler::duplicateLayer);
-    connect(mActionMergeLayerDown, &QAction::triggered, this, &MapDocumentActionHandler::mergeLayerDown);
+    connect(mActionDuplicateLayers, &QAction::triggered, this, &MapDocumentActionHandler::duplicateLayers);
+    connect(mActionMergeLayersDown, &QAction::triggered, this, &MapDocumentActionHandler::mergeLayersDown);
     connect(mActionSelectPreviousLayer, &QAction::triggered, this, &MapDocumentActionHandler::selectPreviousLayer);
     connect(mActionSelectNextLayer, &QAction::triggered, this, &MapDocumentActionHandler::selectNextLayer);
-    connect(mActionRemoveLayer, &QAction::triggered, this, &MapDocumentActionHandler::removeLayer);
-    connect(mActionMoveLayerUp, &QAction::triggered, this, &MapDocumentActionHandler::moveLayerUp);
-    connect(mActionMoveLayerDown, &QAction::triggered, this, &MapDocumentActionHandler::moveLayerDown);
+    connect(mActionRemoveLayers, &QAction::triggered, this, &MapDocumentActionHandler::removeLayers);
+    connect(mActionMoveLayersUp, &QAction::triggered, this, &MapDocumentActionHandler::moveLayersUp);
+    connect(mActionMoveLayersDown, &QAction::triggered, this, &MapDocumentActionHandler::moveLayersDown);
     connect(mActionToggleOtherLayers, &QAction::triggered, this, &MapDocumentActionHandler::toggleOtherLayers);
+    connect(mActionToggleLockOtherLayers, &QAction::triggered, this, &MapDocumentActionHandler::toggleLockOtherLayers);
     connect(mActionLayerProperties, &QAction::triggered, this, &MapDocumentActionHandler::layerProperties);
 
     connect(mActionDuplicateObjects, &QAction::triggered, this, &MapDocumentActionHandler::duplicateObjects);
     connect(mActionRemoveObjects, &QAction::triggered, this, &MapDocumentActionHandler::removeObjects);
+
+    ActionManager::registerAction(mActionSelectAll, "SelectAll");
+    ActionManager::registerAction(mActionSelectInverse, "SelectInverse");
+    ActionManager::registerAction(mActionSelectNone, "SelectNone");
+    ActionManager::registerAction(mActionCropToSelection, "CropToSelection");
+    ActionManager::registerAction(mActionAutocrop, "Autocrop");
+    ActionManager::registerAction(mActionAddTileLayer, "AddTileLayer");
+    ActionManager::registerAction(mActionAddObjectGroup, "AddObjectLayer");
+    ActionManager::registerAction(mActionAddImageLayer, "AddImageLayer");
+    ActionManager::registerAction(mActionAddGroupLayer, "AddGroupLayer");
+    ActionManager::registerAction(mActionLayerViaCopy, "LayerViaCopy");
+    ActionManager::registerAction(mActionLayerViaCut, "LayerViaCut");
+    ActionManager::registerAction(mActionGroupLayers, "GroupLayers");
+    ActionManager::registerAction(mActionUngroupLayers, "UngroupLayers");
+
+    ActionManager::registerAction(mActionDuplicateLayers, "DuplicateLayers");
+    ActionManager::registerAction(mActionMergeLayersDown, "MergeLayersDown");
+    ActionManager::registerAction(mActionSelectPreviousLayer, "SelectPreviousLayer");
+    ActionManager::registerAction(mActionSelectNextLayer, "SelectNextLayer");
+    ActionManager::registerAction(mActionRemoveLayers, "RemoveLayers");
+    ActionManager::registerAction(mActionMoveLayersUp, "MoveLayersUp");
+    ActionManager::registerAction(mActionMoveLayersDown, "MoveLayersDown");
+    ActionManager::registerAction(mActionToggleOtherLayers, "ToggleOtherLayers");
+    ActionManager::registerAction(mActionToggleLockOtherLayers, "ToggleLockOtherLayers");
+    ActionManager::registerAction(mActionLayerProperties, "LayerProperties");
+
+    ActionManager::registerAction(mActionDuplicateObjects, "DuplicateObjects");
+    ActionManager::registerAction(mActionRemoveObjects, "RemoveObjects");
 
     updateActions();
     retranslateUi();
@@ -191,17 +229,18 @@ void MapDocumentActionHandler::retranslateUi()
     mActionAddGroupLayer->setText(tr("&Group Layer"));
     mActionLayerViaCopy->setText(tr("Layer via Copy"));
     mActionLayerViaCut->setText(tr("Layer via Cut"));
-    mActionGroupLayers->setText(tr("&Group Layer"));
-    mActionUngroupLayers->setText(tr("&Ungroup Layer"));
+    mActionGroupLayers->setText(tr("&Group Layers"));
+    mActionUngroupLayers->setText(tr("&Ungroup Layers"));
 
-    mActionDuplicateLayer->setText(tr("&Duplicate Layer"));
-    mActionMergeLayerDown->setText(tr("&Merge Layer Down"));
-    mActionRemoveLayer->setText(tr("&Remove Layer"));
+    mActionDuplicateLayers->setText(tr("&Duplicate Layers"));
+    mActionMergeLayersDown->setText(tr("&Merge Layer Down"));   // todo: make plural after string-freeze
+    mActionRemoveLayers->setText(tr("&Remove Layers"));
     mActionSelectPreviousLayer->setText(tr("Select Pre&vious Layer"));
     mActionSelectNextLayer->setText(tr("Select &Next Layer"));
-    mActionMoveLayerUp->setText(tr("R&aise Layer"));
-    mActionMoveLayerDown->setText(tr("&Lower Layer"));
+    mActionMoveLayersUp->setText(tr("R&aise Layers"));
+    mActionMoveLayersDown->setText(tr("&Lower Layers"));
     mActionToggleOtherLayers->setText(tr("Show/&Hide all Other Layers"));
+    mActionToggleLockOtherLayers->setText(tr("Lock/&Unlock all Other Layers"));
     mActionLayerProperties->setText(tr("Layer &Properties..."));
 }
 
@@ -223,6 +262,8 @@ void MapDocumentActionHandler::setMapDocument(MapDocument *mapDocument)
                 this, &MapDocumentActionHandler::updateActions);
         connect(mapDocument, &MapDocument::currentLayerChanged,
                 this, &MapDocumentActionHandler::updateActions);
+        connect(mapDocument, &MapDocument::selectedLayersChanged,
+                this, &MapDocumentActionHandler::updateActions);
         connect(mapDocument, &MapDocument::selectedAreaChanged,
                 this, &MapDocumentActionHandler::updateActions);
         connect(mapDocument, &MapDocument::selectedObjectsChanged,
@@ -230,8 +271,6 @@ void MapDocumentActionHandler::setMapDocument(MapDocument *mapDocument)
         connect(mapDocument, &MapDocument::mapChanged,
                 this, &MapDocumentActionHandler::updateActions);
     }
-
-    emit mapDocumentChanged(mMapDocument);
 }
 
 /**
@@ -305,6 +344,10 @@ bool MapDocumentActionHandler::copy()
     return false;
 }
 
+/**
+ * Erases the selected tiles when any tile layer is selected and removes the
+ * selected objects when any object layer is selected.
+ */
 void MapDocumentActionHandler::delete_()
 {
     if (!mMapDocument)
@@ -314,38 +357,48 @@ void MapDocumentActionHandler::delete_()
         return;
 
     const QRegion &selectedArea = mMapDocument->selectedArea();
+    const QList<Layer*> &selectedLayers = mMapDocument->selectedLayers();
+    const QList<MapObject*> selectedObjects = mMapDocument->selectedObjectsOrdered();
+
+    bool tileLayerSelected = std::any_of(selectedLayers.begin(), selectedLayers.end(),
+                                         [] (Layer *layer) { return layer->isTileLayer(); });
 
     QList<QUndoCommand*> commands;
 
-    LayerIterator layerIterator(mMapDocument->map(), Layer::TileLayerType);
-    for (Layer *layer : mMapDocument->selectedLayers()) {
-        if (!layer->isTileLayer())
-            continue;
+    if (tileLayerSelected) {
+        LayerIterator layerIterator(mMapDocument->map(), Layer::TileLayerType);
+        for (Layer *layer : selectedLayers) {
+            if (!layer->isTileLayer())
+                continue;
 
-        auto tileLayer = static_cast<TileLayer*>(layer);
-        const QRegion area = selectedArea.intersected(tileLayer->bounds());
-        if (area.isEmpty())                     // nothing to delete
-            continue;
+            auto tileLayer = static_cast<TileLayer*>(layer);
+            const QRegion area = selectedArea.intersected(tileLayer->bounds());
+            if (area.isEmpty())                     // nothing to delete
+                continue;
 
-        // Delete the selected part of the layer
-        commands.append(new EraseTiles(mMapDocument, tileLayer, area));
+            // Delete the selected part of the layer
+            commands.append(new EraseTiles(mMapDocument, tileLayer, area));
+        }
+
+        if (!selectedArea.isEmpty())
+            commands.append(new ChangeSelectedArea(mMapDocument, QRegion()));
     }
 
-    for (MapObject *mapObject : mMapDocument->selectedObjects())
-        commands.append(new RemoveMapObject(mMapDocument, mapObject));
+    if (!selectedObjects.isEmpty()) {
+        bool objectGroupSelected = std::any_of(selectedLayers.begin(), selectedLayers.end(),
+                                               [] (Layer *layer) { return layer->isObjectGroup(); });
 
-    QUndoStack *undoStack = mMapDocument->undoStack();
+        if (objectGroupSelected)
+            commands.append(new RemoveMapObjects(mMapDocument, selectedObjects));
+    }
 
     if (!commands.isEmpty()) {
+        QUndoStack *undoStack = mMapDocument->undoStack();
         undoStack->beginMacro(tr("Delete"));
         for (QUndoCommand *command : commands)
             undoStack->push(command);
-    }
-
-    selectNone();
-
-    if (!commands.isEmpty())
         undoStack->endMacro();
+    }
 }
 
 void MapDocumentActionHandler::selectAll()
@@ -524,7 +577,7 @@ void MapDocumentActionHandler::layerVia(MapDocumentActionHandler::LayerViaVarian
         break;
     }
     case Layer::ObjectGroupType: {
-        selectedObjects = mMapDocument->selectedObjects();
+        selectedObjects = mMapDocument->selectedObjectsOrdered();
         if (selectedObjects.isEmpty())
             return;
 
@@ -533,7 +586,7 @@ void MapDocumentActionHandler::layerVia(MapDocumentActionHandler::LayerViaVarian
         newObjectGroup->setDrawOrder(currentObjectGroup->drawOrder());
         newObjectGroup->setColor(currentObjectGroup->color());
 
-        for (MapObject *mapObject : selectedObjects) {
+        for (MapObject *mapObject : qAsConst(selectedObjects)) {
             MapObject *clone = mapObject->clone();
             if (variant == ViaCopy)
                 clone->resetId();
@@ -567,8 +620,7 @@ void MapDocumentActionHandler::layerVia(MapDocumentActionHandler::LayerViaVarian
             break;
         }
         case Layer::ObjectGroupType:
-            for (MapObject *oldObject : selectedObjects)
-                undoStack->push(new RemoveMapObject(mMapDocument, oldObject));
+            undoStack->push(new RemoveMapObjects(mMapDocument, selectedObjects));
             break;
         default:
             Q_ASSERT(false);
@@ -587,61 +639,77 @@ void MapDocumentActionHandler::layerVia(MapDocumentActionHandler::LayerViaVarian
 void MapDocumentActionHandler::groupLayers()
 {
     if (mMapDocument)
-        mMapDocument->groupLayer(mMapDocument->currentLayer());
+        mMapDocument->groupLayers(mMapDocument->selectedLayers());
 }
 
 void MapDocumentActionHandler::ungroupLayers()
 {
     if (mMapDocument)
-        mMapDocument->ungroupLayer(mMapDocument->currentLayer());
+        mMapDocument->ungroupLayers(mMapDocument->selectedLayers());
 }
 
-void MapDocumentActionHandler::duplicateLayer()
+void MapDocumentActionHandler::duplicateLayers()
 {
     if (mMapDocument)
-        mMapDocument->duplicateLayer();
+        mMapDocument->duplicateLayers(mMapDocument->selectedLayers());
 }
 
-void MapDocumentActionHandler::mergeLayerDown()
+void MapDocumentActionHandler::mergeLayersDown()
 {
     if (mMapDocument)
-        mMapDocument->mergeLayerDown();
+        mMapDocument->mergeLayersDown(mMapDocument->selectedLayers());
 }
 
 void MapDocumentActionHandler::selectPreviousLayer()
 {
-    if (mMapDocument)
-        mMapDocument->setCurrentLayer(LayerIterator(mMapDocument->currentLayer()).previous());
+    if (!mMapDocument)
+        return;
+
+    if (Layer *previousLayer = LayerIterator(mMapDocument->currentLayer()).previous()) {
+        mMapDocument->setCurrentLayer(previousLayer);
+        mMapDocument->setSelectedLayers({ previousLayer });
+    }
 }
 
 void MapDocumentActionHandler::selectNextLayer()
 {
-    if (mMapDocument)
-        mMapDocument->setCurrentLayer(LayerIterator(mMapDocument->currentLayer()).next());
+    if (!mMapDocument)
+        return;
+
+    if (Layer *nextLayer = LayerIterator(mMapDocument->currentLayer()).next()) {
+        mMapDocument->setCurrentLayer(nextLayer);
+        mMapDocument->setSelectedLayers({ nextLayer });
+    }
 }
 
-void MapDocumentActionHandler::moveLayerUp()
+void MapDocumentActionHandler::moveLayersUp()
 {
     if (mMapDocument)
-        mMapDocument->moveLayerUp(mMapDocument->currentLayer());
+        mMapDocument->moveLayersUp(mMapDocument->selectedLayers());
 }
 
-void MapDocumentActionHandler::moveLayerDown()
+void MapDocumentActionHandler::moveLayersDown()
 {
     if (mMapDocument)
-        mMapDocument->moveLayerDown(mMapDocument->currentLayer());
+        mMapDocument->moveLayersDown(mMapDocument->selectedLayers());
 }
 
-void MapDocumentActionHandler::removeLayer()
+void MapDocumentActionHandler::removeLayers()
 {
     if (mMapDocument)
-        mMapDocument->removeLayer(mMapDocument->currentLayer());
+        mMapDocument->removeLayers(mMapDocument->selectedLayers());
 }
 
 void MapDocumentActionHandler::toggleOtherLayers()
 {
     if (mMapDocument)
-        mMapDocument->toggleOtherLayers(mMapDocument->currentLayer());
+        mMapDocument->toggleOtherLayers(mMapDocument->selectedLayers());
+}
+
+void MapDocumentActionHandler::toggleLockOtherLayers()
+{
+    if (mMapDocument)
+        mMapDocument->toggleLockOtherLayers(mMapDocument->selectedLayers());
 }
 
 void MapDocumentActionHandler::layerProperties()
@@ -682,42 +750,21 @@ void MapDocumentActionHandler::updateActions()
 {
     Map *map = nullptr;
     Layer *currentLayer = nullptr;
+    QList<Layer *> selectedLayers;
     QRegion selection;
     int selectedObjectsCount = 0;
-    bool canMergeDown = false;
 
     if (mMapDocument) {
         map = mMapDocument->map();
         currentLayer = mMapDocument->currentLayer();
+        selectedLayers = mMapDocument->selectedLayers();
         selection = mMapDocument->selectedArea();
         selectedObjectsCount = mMapDocument->selectedObjects().count();
-
-        if (currentLayer) {
-            int currentLayerIndex = currentLayer->siblingIndex();
-            if (currentLayerIndex > 0) {
-                const auto layers = currentLayer->siblings();
-                Layer *upper = layers.at(currentLayerIndex);
-                Layer *lower = layers.at(currentLayerIndex - 1);
-                canMergeDown = lower->canMergeWith(upper);
-            }
-        }
     }
 
     mActionSelectAll->setEnabled(map);
     mActionSelectInverse->setEnabled(map);
-
-    if (currentLayer) {
-        if (currentLayer->asTileLayer()) {
-            mActionSelectNone->setEnabled(!selection.isEmpty());
-        } else if (currentLayer->asObjectGroup()) {
-            mActionSelectNone->setEnabled(selectedObjectsCount  > 0);
-        } else {
-            mActionSelectNone->setEnabled(false);
-        }
-    } else {
-        mActionSelectNone->setEnabled(false);
-    }
-
+    mActionSelectNone->setEnabled(!selection.isEmpty() || selectedObjectsCount  > 0);
 
     mActionCropToSelection->setEnabled(!selection.isEmpty());
 
@@ -732,22 +779,25 @@ void MapDocumentActionHandler::updateActions()
     mActionLayerViaCopy->setEnabled(usableSelection);
     mActionLayerViaCut->setEnabled(usableSelection);
 
-    mActionGroupLayers->setEnabled(currentLayer);
-    mActionUngroupLayers->setEnabled(currentLayer && (currentLayer->isGroupLayer() || currentLayer->parentLayer()));
+    mActionGroupLayers->setEnabled(!selectedLayers.isEmpty());
+    mActionUngroupLayers->setEnabled(std::any_of(selectedLayers.begin(), selectedLayers.end(),
+                                                 [] (Layer *layer) { return layer->isGroupLayer() || layer->parentLayer(); }));
 
     const bool hasPreviousLayer = LayerIterator(currentLayer).previous();
     const bool hasNextLayer = LayerIterator(currentLayer).next();
-    const bool canMoveLayerUp = currentLayer && MoveLayer::canMoveUp(*currentLayer);
-    const bool canMoveLayerDown = currentLayer && MoveLayer::canMoveDown(*currentLayer);
+    const bool canMoveLayersUp = !selectedLayers.isEmpty() && MoveLayer::canMoveUp(selectedLayers);
+    const bool canMoveLayersDown = !selectedLayers.isEmpty() && MoveLayer::canMoveDown(selectedLayers);
 
-    mActionDuplicateLayer->setEnabled(currentLayer);
-    mActionMergeLayerDown->setEnabled(canMergeDown);
+    mActionDuplicateLayers->setEnabled(!selectedLayers.isEmpty());
+    mActionMergeLayersDown->setEnabled(std::any_of(selectedLayers.begin(), selectedLayers.end(),
+                                                   [] (Layer *layer) { return layer->canMergeDown(); }));
     mActionSelectPreviousLayer->setEnabled(hasPreviousLayer);
     mActionSelectNextLayer->setEnabled(hasNextLayer);
-    mActionMoveLayerUp->setEnabled(canMoveLayerUp);
-    mActionMoveLayerDown->setEnabled(canMoveLayerDown);
+    mActionMoveLayersUp->setEnabled(canMoveLayersUp);
+    mActionMoveLayersDown->setEnabled(canMoveLayersDown);
     mActionToggleOtherLayers->setEnabled(currentLayer && (hasNextLayer || hasPreviousLayer));
-    mActionRemoveLayer->setEnabled(currentLayer);
+    mActionToggleLockOtherLayers->setEnabled(currentLayer && (hasNextLayer || hasPreviousLayer));
+    mActionRemoveLayers->setEnabled(!selectedLayers.isEmpty());
     mActionLayerProperties->setEnabled(currentLayer);
 
     mActionDuplicateObjects->setEnabled(selectedObjectsCount > 0);
@@ -768,5 +818,4 @@ void MapDocumentActionHandler::updateActions()
     mActionRemoveObjects->setText(removeText);
 }
 
-} // namespace Internal
 } // namespace Tiled

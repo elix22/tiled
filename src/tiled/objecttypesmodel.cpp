@@ -21,7 +21,6 @@
 #include "objecttypesmodel.h"
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 static bool objectTypeLessThan(const ObjectType &a, const ObjectType &b)
 {
@@ -32,7 +31,7 @@ void ObjectTypesModel::setObjectTypes(const ObjectTypes &objectTypes)
 {
     beginResetModel();
     mObjectTypes = objectTypes;
-    qSort(mObjectTypes.begin(), mObjectTypes.end(), objectTypeLessThan);
+    std::sort(mObjectTypes.begin(), mObjectTypes.end(), objectTypeLessThan);
     endResetModel();
 }
 
@@ -118,7 +117,11 @@ bool ObjectTypesModel::setData(const QModelIndex &index,
             Q_ASSERT(newRow != oldRow);
             Q_ASSERT(newRow != oldRow + 1);
             beginMoveRows(QModelIndex(), oldRow, oldRow, QModelIndex(), newRow);
+#if QT_VERSION >= 0x050600
             mObjectTypes.move(oldRow, moveToRow);
+#else
+            mObjectTypes.insert(moveToRow, mObjectTypes.takeAt(oldRow));
+#endif
             endMoveRows();
         }
         return true;
@@ -154,7 +157,7 @@ void ObjectTypesModel::removeObjectTypes(const QModelIndexList &indexes)
     for (const QModelIndex &index : indexes)
         rows.append(index.row());
 
-    qSort(rows);
+    std::sort(rows.begin(), rows.end());
 
     for (int i = rows.size() - 1; i >= 0; --i) {
         const int row = rows.at(i);

@@ -54,7 +54,6 @@
 #include <algorithm>
 
 namespace Tiled {
-namespace Internal {
 
 QString BrokenLink::filePath() const
 {
@@ -359,7 +358,7 @@ void BrokenLinksModel::tilesetReplaced(int index, Tileset *newTileset, Tileset *
 
 void BrokenLinksModel::connectToTileset(const SharedTileset &tileset)
 {
-    auto tilesetDocument = DocumentManager::instance()->findTilesetDocument(tileset);
+    auto tilesetDocument = TilesetDocument::findDocumentForTileset(tileset);
     if (tilesetDocument) {
         connect(tilesetDocument, &TilesetDocument::tileImageSourceChanged,
                 this, &BrokenLinksModel::tileImageSourceChanged);
@@ -370,7 +369,7 @@ void BrokenLinksModel::connectToTileset(const SharedTileset &tileset)
 
 void BrokenLinksModel::disconnectFromTileset(const SharedTileset &tileset)
 {
-    auto tilesetDocument = DocumentManager::instance()->findTilesetDocument(tileset->sharedPointer());
+    auto tilesetDocument = TilesetDocument::findDocumentForTileset(tileset);
     if (tilesetDocument)
         tilesetDocument->disconnect(this);
 }
@@ -484,15 +483,15 @@ void BrokenLinksWidget::selectionChanged()
         const BrokenLink &link = mBrokenLinksModel->brokenLink(firstIndex.row());
 
         switch (link.type) {
-        case Tiled::Internal::MapTilesetReference:
-        case Tiled::Internal::ObjectTemplateReference:
+        case MapTilesetReference:
+        case ObjectTemplateReference:
             mLocateButton->setText(tr("Locate File..."));
             break;
-        case Tiled::Internal::ObjectTemplateTilesetReference:
+        case ObjectTemplateTilesetReference:
             mLocateButton->setText(tr("Open Template..."));
             break;
-        case Tiled::Internal::TilesetTileImageSource:
-        case Tiled::Internal::TilesetImageSource:
+        case TilesetTileImageSource:
+        case TilesetImageSource:
             if (isTileset)
                 mLocateButton->setText(tr("Locate File..."));
             else
@@ -673,7 +672,7 @@ bool BrokenLinksWidget::tryFixLink(const BrokenLink &link, const QString &newFil
         SharedTileset newTileset = TilesetManager::instance()->findTileset(newFilePath);
         if (!newTileset || newTileset->status() == LoadingError) {
             QString error;
-            newTileset = Tiled::readTileset(newFilePath, &error);
+            newTileset = readTileset(newFilePath, &error);
 
             if (!newTileset) {
                 QMessageBox::critical(window(), tr("Error Reading Tileset"), error);
@@ -708,5 +707,4 @@ bool BrokenLinksWidget::tryFixLink(const BrokenLink &link, const QString &newFil
     return true;
 }
 
-} // namespace Internal
 } // namespace Tiled

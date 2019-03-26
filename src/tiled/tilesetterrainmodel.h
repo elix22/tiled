@@ -27,8 +27,6 @@ namespace Tiled {
 class Tileset;
 class Terrain;
 
-namespace Internal {
-
 class TilesetDocument;
 
 /**
@@ -51,7 +49,7 @@ public:
     TilesetTerrainModel(TilesetDocument *mapDocument,
                         QObject *parent = nullptr);
 
-    ~TilesetTerrainModel();
+    ~TilesetTerrainModel() override;
 
     using QAbstractListModel::index;
     QModelIndex index(Terrain *terrain) const;
@@ -114,5 +112,4 @@ private:
     TilesetDocument *mTilesetDocument;
 };
 
-} // namespace Internal
 } // namespace Tiled

@@ -24,7 +24,7 @@
 #include <QPainter>
 #include <QResizeEvent>
 
-using namespace Tiled::Internal;
+using namespace Tiled;
 
 ResizeHelper::ResizeHelper(QWidget *parent)
     : QWidget(parent)
@@ -211,7 +211,11 @@ void ResizeHelper::recalculateScale()
     newScale += mZoom;
 
     if (newScale != mScale && mMiniMapRenderer) {
+#if QT_VERSION >= 0x050600
         const qreal ratio = devicePixelRatioF();
+#else
+        const int ratio = devicePixelRatio();
+#endif
         const QSize size = mOldSize * (newScale * ratio);
         mMiniMap = mMiniMapRenderer(size);
     }

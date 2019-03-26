@@ -20,39 +20,51 @@
 
 #include "consoledock.h"
 
-#include "commandmanager.h"
 #include "logginginterface.h"
 #include "pluginmanager.h"
+#include "scriptmanager.h"
 
+#include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QShortcut>
 #include <QVBoxLayout>
 
 namespace Tiled {
-namespace Internal {
 
 ConsoleDock::ConsoleDock(QWidget *parent)
     : QDockWidget(parent)
+    , mPlainTextEdit(new QPlainTextEdit)
+    , mLineEdit(new QLineEdit)
 {
     setObjectName(QLatin1String("ConsoleDock"));
-
-    setWindowTitle(tr("Debug Console"));
+    setWindowTitle(tr("Console"));
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);
     layout->setMargin(0);
+    layout->setSpacing(0);
 
-    plainTextEdit = new QPlainTextEdit;
-    plainTextEdit->setReadOnly(true);
-
-    plainTextEdit->setStyleSheet(QString::fromUtf8(
+    mPlainTextEdit->setReadOnly(true);
+    mPlainTextEdit->setStyleSheet(QLatin1String(
                             "QAbstractScrollArea {"
                             " background-color: black;"
-                            " color:green;"
+                            " color:lightgray;"
                             "}"
                             ));
 
-    layout->addWidget(plainTextEdit);
+    mLineEdit->setPlaceholderText(tr("Execute script"));
+    mLineEdit->setClearButtonEnabled(true);
+    connect(mLineEdit, &QLineEdit::returnPressed,
+            this, &ConsoleDock::executeScript);
 
-    registerOutput(CommandManager::instance()->logger());
+    auto previousShortcut = new QShortcut(Qt::Key_Up, mLineEdit, nullptr, nullptr, Qt::WidgetShortcut);
+    connect(previousShortcut, &QShortcut::activated, [this] { moveHistory(-1); });
+
+    auto nextShortcut = new QShortcut(Qt::Key_Down, mLineEdit, nullptr, nullptr, Qt::WidgetShortcut);
+    connect(nextShortcut, &QShortcut::activated, [this] { moveHistory(1); });
+
+    layout->addWidget(mPlainTextEdit);
+    layout->addWidget(mLineEdit);
 
     for (LoggingInterface *output : PluginManager::objects<LoggingInterface>())
         registerOutput(output);
@@ -69,14 +81,20 @@ ConsoleDock::~ConsoleDock()
 
 void ConsoleDock::appendInfo(const QString &str)
 {
-    plainTextEdit->appendHtml(QLatin1String("<pre>") + str +
-                              QLatin1String("</pre>"));
+    mPlainTextEdit->appendHtml(QLatin1String("<pre>") + str.toHtmlEscaped() +
+                               QLatin1String("</pre>"));
 }
 
 void ConsoleDock::appendError(const QString &str)
 {
-    plainTextEdit->appendHtml(QLatin1String("<pre style='color:red'>") + str +
-                              QLatin1String("</pre>"));
+    mPlainTextEdit->appendHtml(QLatin1String("<pre style='color:red'>") + str.toHtmlEscaped() +
+                               QLatin1String("</pre>"));
+}
+
+void ConsoleDock::appendScript(const QString &str)
+{
+    mPlainTextEdit->appendHtml(QLatin1String("<pre style='color:lightgreen'>&gt; ") + str.toHtmlEscaped() +
+                               QLatin1String("</pre>"));
 }
 
 void ConsoleDock::onObjectAdded(QObject *object)
@@ -85,13 +103,42 @@ void ConsoleDock::onObjectAdded(QObject *object)
         registerOutput(output);
 }
 
-void ConsoleDock::registerOutput(LoggingInterface *output)
+void ConsoleDock::executeScript()
 {
-    connect(output, &LoggingInterface::info,
-            this, &ConsoleDock::appendInfo);
-    connect(output, &LoggingInterface::error,
-            this, &ConsoleDock::appendError);
+    const QString script = mLineEdit->text();
+    if (script.isEmpty())
+        return;
+
+    appendScript(script);
+
+    const QJSValue result = ScriptManager::instance().evaluate(script);
+    if (!result.isError() && !result.isUndefined())
+        appendInfo(result.toString());
+
+    mLineEdit->clear();
+
+    mHistory.append(script);
+    mHistoryPosition = mHistory.size();
 }
 
-} // namespace Internal
+void ConsoleDock::moveHistory(int direction)
+{
+    int newPosition = qBound(0, mHistoryPosition + direction, mHistory.size());
+    if (newPosition == mHistoryPosition)
+        return;
+
+    if (newPosition < mHistory.size())
+        mLineEdit->setText(mHistory.at(newPosition));
+    else
+        mLineEdit->clear();
+
+    mHistoryPosition = newPosition;
+}
+
+void ConsoleDock::registerOutput(LoggingInterface *output)
+{
+    connect(output, &LoggingInterface::info, this, &ConsoleDock::appendInfo);
+    connect(output, &LoggingInterface::error, this, &ConsoleDock::appendError);
+}
+
 } // namespace Tiled

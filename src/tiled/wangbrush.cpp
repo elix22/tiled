@@ -35,7 +35,6 @@
 #include <QtMath>
 
 using namespace Tiled;
-using namespace Internal;
 
 //value between 0 and 0.5 to control the dead zone with edge mode.
 static const double MIDDLE_DEAD_ZONE = 0.25;
@@ -323,7 +322,7 @@ void WangBrush::updateStatusInfo()
         QString extraInfo;
         if (!static_cast<WangBrushItem*>(brushItem())->isValid())
             extraInfo = QString(QLatin1String(" (%1)"))
-                        .arg(tr("Missing wang tile transition"));
+                        .arg(tr("Missing Wang tile transition"));
 
         setStatusInfo(QString(QLatin1String("%1, %2%3%4"))
                       .arg(mPaintPoint.x())

@@ -44,10 +44,8 @@
 #include <QTreeView>
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 namespace Tiled {
-namespace Internal {
 
 static Terrain *firstTerrain(MapDocument *mapDocument)
 {
@@ -99,7 +97,6 @@ protected:
     bool mEnabled;
 };
 
-} // namespace Internal
 } // namespace Tiled
 
 TerrainDock::TerrainDock(QWidget *parent)
@@ -124,13 +121,13 @@ TerrainDock::TerrainDock(QWidget *parent)
     mTerrainView->setModel(mProxyModel);
     connect(mTerrainView->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &TerrainDock::refreshCurrentTerrain);
-    connect(mTerrainView, SIGNAL(pressed(QModelIndex)),
-            SLOT(indexPressed(QModelIndex)));
+    connect(mTerrainView, &QAbstractItemView::pressed,
+            this, &TerrainDock::indexPressed);
     connect(mTerrainView, &TerrainView::removeTerrainTypeRequested,
             this, &TerrainDock::removeTerrainTypeRequested);
 
-    connect(mProxyModel, SIGNAL(rowsInserted(QModelIndex,int,int)),
-            this, SLOT(expandRows(QModelIndex,int,int)));
+    connect(mProxyModel, &QAbstractItemModel::rowsInserted,
+            this, &TerrainDock::expandRows);
 
     mEraseTerrainButton = new QPushButton(this);
     mEraseTerrainButton->setIconSize(Utils::smallIconSize());

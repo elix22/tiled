@@ -24,7 +24,6 @@
 #include "utils.h"
 
 using namespace Tiled;
-using namespace Tiled::Internal;
 
 CreateRectangleObjectTool::CreateRectangleObjectTool(QObject *parent)
     : CreateScalableObjectTool(parent)
@@ -33,10 +32,16 @@ CreateRectangleObjectTool::CreateRectangleObjectTool(QObject *parent)
     icon.addFile(QLatin1String(":images/48x48/insert-rectangle.png"));
     setIcon(icon);
     Utils::setThemeIcon(this, "insert-rectangle");
-    languageChanged();
+    languageChangedImpl();
 }
 
 void CreateRectangleObjectTool::languageChanged()
+{
+    CreateScalableObjectTool::languageChanged();
+    languageChangedImpl();
+}
+
+void CreateRectangleObjectTool::languageChangedImpl()
 {
     setName(tr("Insert Rectangle"));
     setShortcut(QKeySequence(tr("R")));

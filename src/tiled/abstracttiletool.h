@@ -26,10 +26,9 @@ namespace Tiled {
 
 class TileLayer;
 
-namespace Internal {
-
 class BrushItem;
 class MapDocument;
+class TileStamp;
 
 /**
  * A convenient base class for tile based tools.
@@ -115,9 +114,13 @@ protected:
      */
     TileLayer *currentTileLayer() const;
 
+    virtual void updateBrushVisibility();
+    virtual QList<Layer *> targetLayers() const;
+
+    QList<Layer *> targetLayersForStamp(const TileStamp &stamp) const;
+
 private:
     void setBrushVisible(bool visible);
-    void updateBrushVisibility();
 
     TilePositionMethod mTilePositionMethod;
     BrushItem *mBrushItem;
@@ -125,5 +128,4 @@ private:
     bool mBrushVisible;
 };
 
-} // namespace Internal
 } // namespace Tiled

@@ -1,4 +1,5 @@
 import qbs 1.0
+import qbs.File
 import qbs.FileInfo
 import qbs.TextFile
 
@@ -12,7 +13,7 @@ QtGuiApplication {
     Depends { name: "qtpropertybrowser" }
     Depends { name: "qtsingleapplication" }
     Depends { name: "ib"; condition: qbs.targetOS.contains("macos") }
-    Depends { name: "Qt"; submodules: ["core", "widgets"]; versionAtLeast: "5.6" }
+    Depends { name: "Qt"; submodules: ["core", "widgets", "qml"]; versionAtLeast: "5.5" }
 
     property bool qtcRunnable: true
     property bool macSparkleEnabled: qbs.targetOS.contains("macos") && project.sparkleEnabled
@@ -54,8 +55,11 @@ QtGuiApplication {
     cpp.defines: {
         var defs = [
             "TILED_VERSION=" + version,
+            "QT_DEPRECATED_WARNINGS",
+            "QT_DISABLE_DEPRECATED_BEFORE=0x050900",
             "QT_NO_CAST_FROM_ASCII",
             "QT_NO_CAST_TO_ASCII",
+            "QT_NO_FOREACH",
             "QT_NO_URL_CAST_FROM_STRING",
             "_USE_MATH_DEFINES"
         ];
@@ -125,8 +129,6 @@ QtGuiApplication {
         "bucketfilltool.h",
         "capturestamphelper.cpp",
         "capturestamphelper.h",
-        "changeimagelayerposition.cpp",
-        "changeimagelayerposition.h",
         "changeimagelayerproperties.cpp",
         "changeimagelayerproperties.h",
         "changelayer.cpp",
@@ -185,16 +187,12 @@ QtGuiApplication {
         "containerhelpers.h",
         "createellipseobjecttool.cpp",
         "createellipseobjecttool.h",
-        "createmultipointobjecttool.cpp",
-        "createmultipointobjecttool.h",
         "createobjecttool.cpp",
         "createobjecttool.h",
         "createpointobjecttool.cpp",
         "createpointobjecttool.h",
         "createpolygonobjecttool.cpp",
         "createpolygonobjecttool.h",
-        "createpolylineobjecttool.cpp",
-        "createpolylineobjecttool.h",
         "createrectangleobjecttool.cpp",
         "createrectangleobjecttool.h",
         "createscalableobjecttool.cpp",
@@ -209,6 +207,28 @@ QtGuiApplication {
         "document.h",
         "documentmanager.cpp",
         "documentmanager.h",
+        "editableasset.cpp",
+        "editableasset.h",
+        "editableimagelayer.cpp",
+        "editableimagelayer.h",
+        "editablelayer.cpp",
+        "editablelayer.h",
+        "editablemap.cpp",
+        "editablemap.h",
+        "editablemapobject.cpp",
+        "editablemapobject.h",
+        "editableobject.cpp",
+        "editableobject.h",
+        "editableobjectgroup.cpp",
+        "editableobjectgroup.h",
+        "editableselectedarea.cpp",
+        "editableselectedarea.h",
+        "editabletile.cpp",
+        "editabletile.h",
+        "editabletilelayer.cpp",
+        "editabletilelayer.h",
+        "editabletileset.cpp",
+        "editabletileset.h",
         "editor.cpp",
         "editor.h",
         "editpolygontool.cpp",
@@ -220,6 +240,8 @@ QtGuiApplication {
         "exportasimagedialog.cpp",
         "exportasimagedialog.h",
         "exportasimagedialog.ui",
+        "exporthelper.cpp",
+        "exporthelper.h",
         "filechangedwarning.cpp",
         "filechangedwarning.h",
         "fileedit.cpp",
@@ -296,6 +318,10 @@ QtGuiApplication {
         "newmapdialog.cpp",
         "newmapdialog.h",
         "newmapdialog.ui",
+        "newsbutton.cpp",
+        "newsbutton.h",
+        "newsfeed.cpp",
+        "newsfeed.h",
         "newtilesetdialog.cpp",
         "newtilesetdialog.h",
         "newtilesetdialog.ui",
@@ -310,6 +336,8 @@ QtGuiApplication {
         "objectselectionitem.h",
         "objectselectiontool.cpp",
         "objectselectiontool.h",
+        "objectsview.cpp",
+        "objectsview.h",
         "objecttemplatemodel.cpp",
         "objecttemplatemodel.h",
         "objecttypeseditor.cpp",
@@ -329,6 +357,8 @@ QtGuiApplication {
         "patreondialog.ui",
         "pluginlistmodel.cpp",
         "pluginlistmodel.h",
+        "pointhandle.cpp",
+        "pointhandle.h",
         "preferences.cpp",
         "preferencesdialog.cpp",
         "preferencesdialog.h",
@@ -342,6 +372,8 @@ QtGuiApplication {
         "raiselowerhelper.h",
         "randompicker.h",
         "rangeset.h",
+        "regionvaluetype.cpp",
+        "regionvaluetype.h",
         "renamelayer.cpp",
         "renamelayer.h",
         "renameterrain.cpp",
@@ -369,6 +401,14 @@ QtGuiApplication {
         "reversingproxymodel.h",
         "rotatemapobject.cpp",
         "rotatemapobject.h",
+        "scriptedaction.cpp",
+        "scriptedaction.h",
+        "scriptedmapformat.cpp",
+        "scriptedmapformat.h",
+        "scriptmanager.cpp",
+        "scriptmanager.h",
+        "scriptmodule.cpp",
+        "scriptmodule.h",
         "selectionrectangle.cpp",
         "selectionrectangle.h",
         "selectsametiletool.cpp",
@@ -412,6 +452,8 @@ QtGuiApplication {
         "tiled.qrc",
         "tiledproxystyle.cpp",
         "tiledproxystyle.h",
+        "tilelayeredit.cpp",
+        "tilelayeredit.h",
         "tilelayeritem.cpp",
         "tilelayeritem.h",
         "tilepainter.cpp",
@@ -527,6 +569,7 @@ QtGuiApplication {
         files: ["sparkleautoupdater.mm"]
     }
     Group {
+        condition: qbs.targetOS.contains("macos")
         name: "Public DSA Key File"
         files: ["../../dist/dsa_pub.pem"]
         qbs.install: true
@@ -578,7 +621,7 @@ QtGuiApplication {
         condition: qbs.targetOS.contains("linux")
         qbs.install: true
         qbs.installDir: "share/applications"
-        files: [ "../../tiled.desktop" ]
+        files: [ "../../org.mapeditor.Tiled.desktop" ]
     }
 
     Group {
@@ -586,7 +629,7 @@ QtGuiApplication {
         condition: qbs.targetOS.contains("linux")
         qbs.install: true
         qbs.installDir: "share/metainfo"
-        files: [ "../../tiled.appdata.xml" ]
+        files: [ "../../org.mapeditor.Tiled.appdata.xml" ]
     }
 
     Group {
@@ -602,7 +645,7 @@ QtGuiApplication {
         condition: qbs.targetOS.contains("linux")
         qbs.install: true
         qbs.installDir: "share/mime/packages"
-        files: [ "../../mime/tiled.xml" ]
+        files: [ "../../mime/org.mapeditor.Tiled.xml" ]
     }
 
     Group {
@@ -667,6 +710,24 @@ QtGuiApplication {
         qbs.install: true
         qbs.installDir: "."
         qbs.installSourceBase: product.buildDirectory
+    }
+
+    // Include libtiled.dylib in the app bundle
+    Rule {
+        condition: qbs.targetOS.contains("darwin")
+        inputsFromDependencies: "dynamiclibrary"
+        prepare: {
+            var cmd = new JavaScriptCommand();
+            cmd.description = "preparing " + input.fileName + " for inclusion in " + product.targetName + ".app";
+            cmd.sourceCode = function() { File.copy(input.filePath, output.filePath); };
+            return cmd;
+        }
+
+        Artifact {
+            filePath: input.fileName
+            fileTags: "bundle.input"
+            bundle._bundleFilePath: product.destinationDirectory + "/" + product.targetName + ".app/Contents/Frameworks/" + input.fileName
+        }
     }
 
     // Generate the tiled.rc file in order to dynamically specify the version

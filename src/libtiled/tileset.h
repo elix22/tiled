@@ -41,6 +41,8 @@
 #include <QString>
 #include <QVector>
 
+#include <memory>
+
 class QImage;
 
 namespace Tiled {
@@ -63,6 +65,8 @@ typedef QSharedPointer<Tileset> SharedTileset;
  */
 class TILEDSHARED_EXPORT Tileset : public Object
 {
+    Q_OBJECT
+
 public:
     /**
      * The orientation of the tileset determines the projection used in the
@@ -89,13 +93,7 @@ public:
                                 int tileWidth,
                                 int tileHeight,
                                 int tileSpacing = 0,
-                                int margin = 0)
-    {
-        SharedTileset tileset(new Tileset(name, tileWidth, tileHeight,
-                                          tileSpacing, margin));
-        tileset->mWeakPointer = tileset;
-        return tileset;
-    }
+                                int margin = 0);
 
 private:
     /**
@@ -171,6 +169,9 @@ public:
 
     const QUrl &imageSource() const;
     void setImageSource(const QUrl &imageSource);
+    void setImageSource(const QString &url);
+    QString imageSourceString() const;
+
     bool isCollection() const;
 
     int columnCountForWidth(int width) const;
@@ -193,6 +194,7 @@ public:
     WangSet *wangSet(int index) const;
 
     void addWangSet(WangSet *wangSet);
+    void addWangSet(std::unique_ptr<WangSet> &&wangSet);
     void insertWangSet(int index, WangSet *wangSet);
     WangSet *takeWangSetAt(int index);
 
@@ -256,11 +258,11 @@ private:
     int mColumnCount;
     int mExpectedColumnCount;
     int mExpectedRowCount;
-    QMap<int, Tile*> mTiles;
     int mNextTileId;
+    int mMaximumTerrainDistance;
+    QMap<int, Tile*> mTiles;
     QList<Terrain*> mTerrainTypes;
     QList<WangSet*> mWangSets;
-    int mMaximumTerrainDistance;
     bool mTerrainDistancesDirty;
     LoadingStatus mStatus;
     QColor mBackgroundColor;
@@ -518,14 +520,6 @@ inline void Tileset::setBackgroundColor(QColor color)
 }
 
 /**
- * Convenience override that loads the image using the QImage constructor.
- */
-inline bool Tileset::loadFromImage(const QString &fileName)
-{
-    return loadFromImage(QImage(fileName), QUrl::fromLocalFile(fileName));
-}
-
-/**
  * Returns the URL of the external image that contains the tiles in
  * this tileset. Is an empty string when this tileset doesn't have a
  * tileset image.
@@ -533,6 +527,15 @@ inline bool Tileset::loadFromImage(const QString &fileName)
 inline const QUrl &Tileset::imageSource() const
 {
     return mImageReference.source;
+}
+
+/**
+ * QString-API for Python.
+ */
+inline QString Tileset::imageSourceString() const
+{
+    const QUrl &url = imageSource();
+    return url.isLocalFile() ? url.toLocalFile() : url.toString();
 }
 
 /**

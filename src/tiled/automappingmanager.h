@@ -24,12 +24,11 @@
 #include <QRegion>
 #include <QString>
 #include <QVector>
+#include <QFileSystemWatcher>
 
 namespace Tiled {
 
 class Layer;
-
-namespace Internal {
 
 class AutoMapper;
 class MapDocument;
@@ -69,12 +68,14 @@ signals:
 
 public slots:
     /**
-     * This triggers an automapping on the whole current map document.
+     * This triggers an automapping on the current map document. Starts with
+     * the currently selected area, or the entire map if there is no selection.
      */
     void autoMap();
 
 private slots:
-    void autoMap(const QRegion &where, Layer *touchedLayer);
+    void onRegionEdited(const QRegion &where, Layer *touchedLayer);
+    void onFileChanged();
 
 private:
     Q_DISABLE_COPY(AutomappingManager)
@@ -133,7 +134,10 @@ private:
      * behavior.
      */
     QString mWarning;
+
+    QFileSystemWatcher mWatcher;
+
+    QString rulesFileName() const;
 };
 
-} // namespace Internal
 } // namespace Tiled

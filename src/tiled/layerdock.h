@@ -33,7 +33,6 @@ class QModelIndex;
 class QUndoStack;
 
 namespace Tiled {
-namespace Internal {
 
 class LayerView;
 
@@ -104,6 +103,7 @@ private slots:
     void indexPressed(const QModelIndex &proxyIndex);
     void currentLayerChanged(Layer *layer);
     void selectedLayersChanged();
+    void layerRemoved(Layer *layer);
 
 private:
     MapDocument *mMapDocument;
@@ -111,5 +111,4 @@ private:
     bool mUpdatingSelectedLayers;
 };
 
-} // namespace Internal
 } // namespace Tiled

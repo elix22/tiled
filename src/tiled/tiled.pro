@@ -13,11 +13,7 @@ win32 {
     DESTDIR = ../../bin
 }
 
-QT += widgets
-
-contains(QT_CONFIG, opengl):!macx:!minQtVersion(5, 4, 0) {
-    QT += opengl
-}
+QT += widgets qml
 
 DEFINES += TILED_VERSION=$${TILED_VERSION}
 
@@ -91,7 +87,6 @@ SOURCES += aboutdialog.cpp \
     brushitem.cpp \
     bucketfilltool.cpp \
     capturestamphelper.cpp \
-    changeimagelayerposition.cpp \
     changeimagelayerproperties.cpp \
     changelayer.cpp \
     changemapobject.cpp \
@@ -121,11 +116,9 @@ SOURCES += aboutdialog.cpp \
     commandmanager.cpp \
     consoledock.cpp \
     createellipseobjecttool.cpp \
-    createmultipointobjecttool.cpp \
     createobjecttool.cpp \
     createpointobjecttool.cpp \
     createpolygonobjecttool.cpp \
-    createpolylineobjecttool.cpp \
     createrectangleobjecttool.cpp \
     createscalableobjecttool.cpp \
     createtemplatetool.cpp \
@@ -133,11 +126,23 @@ SOURCES += aboutdialog.cpp \
     createtileobjecttool.cpp \
     document.cpp \
     documentmanager.cpp \
+    editableasset.cpp \
+    editableimagelayer.cpp \
+    editablelayer.cpp \
+    editablemap.cpp \
+    editablemapobject.cpp \
+    editableobject.cpp \
+    editableobjectgroup.cpp \
+    editableselectedarea.cpp \
+    editabletile.cpp \
+    editabletilelayer.cpp \
+    editabletileset.cpp \
     editor.cpp \
     editpolygontool.cpp \
     eraser.cpp \
     erasetiles.cpp \
     exportasimagedialog.cpp \
+    exporthelper.cpp \
     filechangedwarning.cpp \
     fileedit.cpp \
     flexiblescrollbar.cpp \
@@ -174,12 +179,15 @@ SOURCES += aboutdialog.cpp \
     movemapobjecttogroup.cpp \
     moveterrain.cpp \
     newmapdialog.cpp \
+    newsbutton.cpp \
+    newsfeed.cpp \
     newtilesetdialog.cpp \
     noeditorwidget.cpp \
     objectgroupitem.cpp \
     objectsdock.cpp \
     objectselectionitem.cpp \
     objectselectiontool.cpp \
+    objectsview.cpp \
     objecttemplatemodel.cpp \
     objecttypeseditor.cpp \
     objecttypesmodel.cpp \
@@ -188,11 +196,13 @@ SOURCES += aboutdialog.cpp \
     painttilelayer.cpp \
     patreondialog.cpp \
     pluginlistmodel.cpp \
+    pointhandle.cpp \
     preferences.cpp \
     preferencesdialog.cpp \
     propertiesdock.cpp \
     propertybrowser.cpp \
     raiselowerhelper.cpp \
+    regionvaluetype.cpp \
     renamelayer.cpp \
     renameterrain.cpp \
     renamewangset.cpp \
@@ -206,6 +216,10 @@ SOURCES += aboutdialog.cpp \
     resizetilelayer.cpp \
     reversingproxymodel.cpp \
     rotatemapobject.cpp \
+    scriptedaction.cpp \
+    scriptedmapformat.cpp \
+    scriptmanager.cpp \
+    scriptmodule.cpp \
     selectionrectangle.cpp \
     selectsametiletool.cpp \
     shapefilltool.cpp \
@@ -226,6 +240,7 @@ SOURCES += aboutdialog.cpp \
     tilecollisiondock.cpp \
     tiledapplication.cpp \
     tiledproxystyle.cpp \
+    tilelayeredit.cpp \
     tilelayeritem.cpp \
     tilepainter.cpp \
     tileselectionitem.cpp \
@@ -287,7 +302,6 @@ HEADERS += aboutdialog.h \
     brushitem.h \
     bucketfilltool.h \
     capturestamphelper.h \
-    changeimagelayerposition.h \
     changeimagelayerproperties.h \
     changelayer.h \
     changemapobject.h \
@@ -318,11 +332,9 @@ HEADERS += aboutdialog.h \
     consoledock.h \
     containerhelpers.h \
     createellipseobjecttool.h \
-    createmultipointobjecttool.h \
     createobjecttool.h \
     createpointobjecttool.h \
     createpolygonobjecttool.h \
-    createpolylineobjecttool.h \
     createrectangleobjecttool.h \
     createscalableobjecttool.h \
     createtemplatetool.h \
@@ -330,11 +342,23 @@ HEADERS += aboutdialog.h \
     createtileobjecttool.h \
     document.h \
     documentmanager.h \
+    editableasset.h \
+    editableimagelayer.h \
+    editablelayer.h \
+    editablemap.h \
+    editablemapobject.h \
+    editableobject.h \
+    editableobjectgroup.h \
+    editableselectedarea.h \
+    editabletile.h \
+    editabletilelayer.h \
+    editabletileset.h \
     editor.h \
     editpolygontool.h \
     eraser.h \
     erasetiles.h \
     exportasimagedialog.h \
+    exporthelper.h \
     filechangedwarning.h \
     fileedit.h \
     flexiblescrollbar.h \
@@ -371,6 +395,8 @@ HEADERS += aboutdialog.h \
     movemapobjecttogroup.h \
     moveterrain.h \
     newmapdialog.h \
+    newsbutton.h \
+    newsfeed.h \
     newtilesetdialog.h \
     noeditorwidget.h \
     objectgroupitem.h \
@@ -378,6 +404,7 @@ HEADERS += aboutdialog.h \
     objectselectionitem.h \
     objecttemplatemodel.h \
     objectselectiontool.h \
+    objectsview.h \
     objecttypeseditor.h \
     objecttypesmodel.h \
     offsetlayer.h \
@@ -385,6 +412,7 @@ HEADERS += aboutdialog.h \
     painttilelayer.h \
     patreondialog.h \
     pluginlistmodel.h \
+    pointhandle.h \
     preferencesdialog.h \
     preferences.h \
     propertiesdock.h \
@@ -392,6 +420,7 @@ HEADERS += aboutdialog.h \
     raiselowerhelper.h \
     randompicker.h \
     rangeset.h \
+    regionvaluetype.h \
     renamelayer.h \
     renameterrain.h \
     renamewangset.h \
@@ -405,6 +434,10 @@ HEADERS += aboutdialog.h \
     resizetilelayer.h \
     reversingproxymodel.h \
     rotatemapobject.h \
+    scriptedaction.h \
+    scriptedmapformat.h \
+    scriptmanager.h \
+    scriptmodule.h \
     selectionrectangle.h \
     selectsametiletool.h \
     shapefilltool.h \
@@ -426,6 +459,7 @@ HEADERS += aboutdialog.h \
     tilecollisiondock.h \
     tiledapplication.h \
     tiledproxystyle.h \
+    tilelayeredit.h \
     tilelayeritem.h \
     tilepainter.h \
     tileselectionitem.h \
@@ -505,7 +539,7 @@ mimeiconscalable.files += images/scalable/application-x-tiled.svg
 INSTALLS += mimeiconscalable
 
 mimeinfofile.path = $${PREFIX}/share/mime/packages/
-mimeinfofile.files += ../../mime/tiled.xml
+mimeinfofile.files += ../../mime/org.mapeditor.Tiled.xml
 INSTALLS += mimeinfofile
 
 thumbnailgenerator.path = $${PREFIX}/share/thumbnailers/
@@ -513,11 +547,11 @@ thumbnailgenerator.files += ../../mime/tiled.thumbnailer
 INSTALLS += thumbnailgenerator
 
 desktopfile.path = $${PREFIX}/share/applications/
-desktopfile.files += ../../tiled.desktop
+desktopfile.files += ../../org.mapeditor.Tiled.desktop
 INSTALLS += desktopfile
 
 appdatafile.path = $${PREFIX}/share/metainfo/
-appdatafile.files += ../../tiled.appdata.xml
+appdatafile.files += ../../org.mapeditor.Tiled.appdata.xml
 INSTALLS += appdatafile
 
 manpage.path = $${PREFIX}/share/man/man1/

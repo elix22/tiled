@@ -33,7 +33,6 @@
 #include <QToolButton>
 
 namespace Tiled {
-namespace Internal {
 
 class ResetWidget : public QWidget
 {
@@ -87,10 +86,10 @@ VariantEditorFactory::~VariantEditorFactory()
 
 void VariantEditorFactory::connectPropertyManager(QtVariantPropertyManager *manager)
 {
-    connect(manager, SIGNAL(valueChanged(QtProperty*,QVariant)),
-            this, SLOT(slotPropertyChanged(QtProperty*,QVariant)));
-    connect(manager, SIGNAL(attributeChanged(QtProperty*,QString,QVariant)),
-            this, SLOT(slotPropertyAttributeChanged(QtProperty*,QString,QVariant)));
+    connect(manager, &QtVariantPropertyManager::valueChanged,
+            this, &VariantEditorFactory::slotPropertyChanged);
+    connect(manager, &QtVariantPropertyManager::attributeChanged,
+            this, &VariantEditorFactory::slotPropertyAttributeChanged);
     QtVariantEditorFactory::connectPropertyManager(manager);
 }
 
@@ -110,8 +109,8 @@ QWidget *VariantEditorFactory::createEditor(QtVariantPropertyManager *manager,
 
         connect(editor, &FileEdit::fileUrlChanged,
                 this, &VariantEditorFactory::fileEditFileUrlChanged);
-        connect(editor, SIGNAL(destroyed(QObject *)),
-                this, SLOT(slotEditorDestroyed(QObject *)));
+        connect(editor, &QObject::destroyed,
+                this, &VariantEditorFactory::slotEditorDestroyed);
 
         return editor;
     }
@@ -122,8 +121,8 @@ QWidget *VariantEditorFactory::createEditor(QtVariantPropertyManager *manager,
         mCreatedTilesetEdits[property].append(editor);
         mTilesetEditToProperty[editor] = property;
 
-        connect(editor, SIGNAL(destroyed(QObject *)),
-                this, SLOT(slotEditorDestroyed(QObject *)));
+        connect(editor, &QObject::destroyed,
+                this, &VariantEditorFactory::slotEditorDestroyed);
 
         return editor;
     }
@@ -138,8 +137,8 @@ QWidget *VariantEditorFactory::createEditor(QtVariantPropertyManager *manager,
 
             connect(editor, &TextPropertyEdit::textChanged,
                     this, &VariantEditorFactory::textPropertyEditTextChanged);
-            connect(editor, SIGNAL(destroyed(QObject *)),
-                    this, SLOT(slotEditorDestroyed(QObject *)));
+            connect(editor, &QObject::destroyed,
+                    this, &VariantEditorFactory::slotEditorDestroyed);
 
             return editor;
         }
@@ -172,10 +171,10 @@ QWidget *VariantEditorFactory::createEditor(QtVariantPropertyManager *manager,
 
 void VariantEditorFactory::disconnectPropertyManager(QtVariantPropertyManager *manager)
 {
-    disconnect(manager, SIGNAL(valueChanged(QtProperty*,QVariant)),
-               this, SLOT(slotPropertyChanged(QtProperty*,QVariant)));
-    disconnect(manager, SIGNAL(attributeChanged(QtProperty*,QString,QVariant)),
-               this, SLOT(slotPropertyAttributeChanged(QtProperty*,QString,QVariant)));
+    disconnect(manager, &QtVariantPropertyManager::valueChanged,
+               this, &VariantEditorFactory::slotPropertyChanged);
+    disconnect(manager, &QtVariantPropertyManager::attributeChanged,
+               this, &VariantEditorFactory::slotPropertyAttributeChanged);
     QtVariantEditorFactory::disconnectPropertyManager(manager);
 }
 
@@ -279,7 +278,6 @@ void VariantEditorFactory::slotEditorDestroyed(QObject *object)
     }
 }
 
-} // namespace Internal
 } // namespace Tiled
 
 #include "varianteditorfactory.moc"

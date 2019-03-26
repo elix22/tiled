@@ -30,7 +30,6 @@ class QModelIndex;
 class QTreeView;
 
 namespace Tiled {
-namespace Internal {
 
 class MapsView;
 
@@ -79,9 +78,12 @@ private slots:
     void onMapsDirectoryChanged();
     void onActivated(const QModelIndex &index);
 
+    void pluginObjectAddedOrRemoved(QObject *object);
+
 private:
+    void updateNameFilters();
+
     QFileSystemModel *mFileSystemModel;
 };
 
-} // namespace Internal
 } // namespace Tiled

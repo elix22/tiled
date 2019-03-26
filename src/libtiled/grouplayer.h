@@ -24,10 +24,14 @@
 
 #include <QList>
 
+#include <memory>
+
 namespace Tiled {
 
 class TILEDSHARED_EXPORT GroupLayer : public Layer
 {
+    Q_OBJECT
+
 public:
     GroupLayer(const QString &name, int x, int y);
     ~GroupLayer() override;
@@ -39,13 +43,14 @@ public:
     void addLayer(Layer *layer);
     void insertLayer(int index, Layer *layer);
     Layer *takeLayerAt(int index);
+    void addLayer(std::unique_ptr<Layer> &&layer);
 
     bool isEmpty() const override;
     QSet<SharedTileset> usedTilesets() const override;
     bool referencesTileset(const Tileset *tileset) const override;
     void replaceReferencesToTileset(Tileset *oldTileset, Tileset *newTileset) override;
-    bool canMergeWith(Layer *other) const override;
-    Layer *mergedWith(Layer *other) const override;
+    bool canMergeWith(const Layer *other) const override;
+    Layer *mergedWith(const Layer *other) const override;
     GroupLayer *clone() const override;
 
     // Enable easy iteration over children with range-based for
@@ -59,7 +64,7 @@ protected:
     GroupLayer *initializeClone(GroupLayer *clone) const;
 
 private:
-    void adoptLayer(Layer *layer);
+    void adoptLayer(Layer &layer);
 
     QList<Layer*> mLayers;
 };
@@ -73,6 +78,11 @@ inline int GroupLayer::layerCount() const
 inline Layer *GroupLayer::layerAt(int index) const
 {
     return mLayers.at(index);
+}
+
+inline void GroupLayer::addLayer(std::unique_ptr<Layer> &&layer)
+{
+    addLayer(layer.release());
 }
 
 } // namespace Tiled

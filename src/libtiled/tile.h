@@ -36,6 +36,8 @@
 #include <QSharedPointer>
 #include <QUrl>
 
+#include <memory>
+
 namespace Tiled {
 
 class ObjectGroup;
@@ -92,6 +94,8 @@ struct Frame
 
 class TILEDSHARED_EXPORT Tile : public Object
 {
+    Q_OBJECT
+
 public:
     Tile(int id, Tileset *tileset);
     Tile(const QPixmap &image, int id, Tileset *tileset);
@@ -132,7 +136,7 @@ public:
     void setProbability(qreal probability);
 
     ObjectGroup *objectGroup() const;
-    void setObjectGroup(ObjectGroup *objectGroup);
+    void setObjectGroup(std::unique_ptr<ObjectGroup> &&objectGroup);
     ObjectGroup *swapObjectGroup(ObjectGroup *objectGroup);
 
     const QVector<Frame> &frames() const;
@@ -156,7 +160,7 @@ private:
     QString mType;
     unsigned mTerrain;
     qreal mProbability;
-    ObjectGroup *mObjectGroup;
+    std::unique_ptr<ObjectGroup> mObjectGroup;
 
     QVector<Frame> mFrames;
     int mCurrentFrameIndex;
@@ -302,7 +306,7 @@ inline void Tile::setProbability(qreal probability)
  */
 inline ObjectGroup *Tile::objectGroup() const
 {
-    return mObjectGroup;
+    return mObjectGroup.get();
 }
 
 inline const QVector<Frame> &Tile::frames() const

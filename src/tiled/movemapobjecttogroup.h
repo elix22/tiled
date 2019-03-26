@@ -27,8 +27,6 @@ namespace Tiled {
 class MapObject;
 class ObjectGroup;
 
-namespace Internal {
-
 class MapDocument;
 
 class MoveMapObjectToGroup : public QUndoCommand
@@ -46,7 +44,7 @@ private:
     MapObject *mMapObject;
     ObjectGroup *mOldObjectGroup;
     ObjectGroup *mNewObjectGroup;
+    int mOldIndex;
 };
 
-} // namespace Internal
 } // namespace Tiled

@@ -25,9 +25,9 @@
 #include <QObject>
 
 class QAction;
+class QMenu;
 
 namespace Tiled {
-namespace Internal {
 
 class MainWindow;
 
@@ -40,8 +40,19 @@ class ActionManager : public QObject
 
 public:
     static void registerAction(QAction *action, Id id);
+    static void unregisterAction(Id id);
+
+    static void registerMenu(QMenu *menu, Id id);
+    static void unregisterMenu(Id id);
 
     static QAction *action(Id id);
+    static QAction *findAction(Id id);
+
+    static QMenu *menu(Id id);
+    static QMenu *findMenu(Id id);
+
+    static QList<Id> actions();
+    static QList<Id> menus();
 
 signals:
     void actionAdded(Id id);
@@ -50,8 +61,7 @@ private:
     explicit ActionManager(QObject *parent = nullptr);
     ~ActionManager();
 
-    friend class Tiled::Internal::MainWindow;   // creation
+    friend class Tiled::MainWindow;   // creation
 };
 
-} // namespace Internal
 } // namespace Tiled

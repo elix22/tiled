@@ -22,11 +22,11 @@
 #include "abstracttool.h"
 
 #include "mapdocument.h"
+#include "toolmanager.h"
 
 #include <QKeyEvent>
 
 namespace Tiled {
-namespace Internal {
 
 AbstractTool::AbstractTool(const QString &name, const QIcon &icon,
                            const QKeySequence &shortcut, QObject *parent)
@@ -36,8 +36,6 @@ AbstractTool::AbstractTool(const QString &name, const QIcon &icon,
     , mShortcut(shortcut)
     , mEnabled(false)
     , mToolManager(nullptr)
-    , mTile(nullptr)
-    , mObjectTemplate(nullptr)
     , mMapDocument(nullptr)
 {
 }
@@ -71,6 +69,16 @@ void AbstractTool::setEnabled(bool enabled)
 
     mEnabled = enabled;
     emit enabledChanged(enabled);
+}
+
+Tile *AbstractTool::tile() const
+{
+    return toolManager()->tile();
+}
+
+ObjectTemplate *AbstractTool::objectTemplate() const
+{
+    return toolManager()->objectTemplate();
 }
 
 void AbstractTool::keyPressed(QKeyEvent *event)
@@ -118,5 +126,4 @@ Layer *AbstractTool::currentLayer() const
     return mMapDocument ? mMapDocument->currentLayer() : nullptr;
 }
 
-} // namespace Internal
 } // namespace Tiled

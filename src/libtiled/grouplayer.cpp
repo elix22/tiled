@@ -36,24 +36,24 @@ GroupLayer::~GroupLayer()
 
 void GroupLayer::addLayer(Layer *layer)
 {
-    adoptLayer(layer);
+    adoptLayer(*layer);
     mLayers.append(layer);
 }
 
 void GroupLayer::insertLayer(int index, Layer *layer)
 {
-    adoptLayer(layer);
+    adoptLayer(*layer);
     mLayers.insert(index, layer);
 }
 
-void GroupLayer::adoptLayer(Layer *layer)
+void GroupLayer::adoptLayer(Layer &layer)
 {
-    layer->setParentLayer(this);
+    layer.setParentLayer(this);
 
     if (map())
         map()->adoptLayer(layer);
     else
-        layer->setMap(nullptr);
+        layer.setMap(nullptr);
 }
 
 Layer *GroupLayer::takeLayerAt(int index)
@@ -95,7 +95,7 @@ void GroupLayer::replaceReferencesToTileset(Tileset *oldTileset, Tileset *newTil
         layer->replaceReferencesToTileset(oldTileset, newTileset);
 }
 
-bool GroupLayer::canMergeWith(Layer *) const
+bool GroupLayer::canMergeWith(const Layer *) const
 {
     // Merging group layers would be possible, but duplicating all child layers
     // is not the right approach.
@@ -103,7 +103,7 @@ bool GroupLayer::canMergeWith(Layer *) const
     return false;
 }
 
-Layer *GroupLayer::mergedWith(Layer *) const
+Layer *GroupLayer::mergedWith(const Layer *) const
 {
     return nullptr;
 }
@@ -119,7 +119,7 @@ void GroupLayer::setMap(Map *map)
 
     if (map) {
         for (Layer *layer : mLayers)
-            map->adoptLayer(layer);
+            map->adoptLayer(*layer);
     } else {
         for (Layer *layer : mLayers)
             layer->setMap(nullptr);

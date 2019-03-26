@@ -29,8 +29,6 @@ namespace Tiled {
 
 class Terrain;
 
-namespace Internal {
-
 class TilesetDocument;
 class Zoomable;
 
@@ -184,7 +182,7 @@ private:
     const Terrain *mTerrain;
     WangSet *mWangSet;
     WangId mWangId;
-    int mWangColor;
+    int mWangColorIndex;
     QModelIndex mHoveredIndex;
     int mHoveredCorner;
     bool mTerrainChanged;
@@ -206,7 +204,6 @@ inline bool TilesetView::markAnimatedTiles() const
     return mMarkAnimatedTiles;
 }
 
-} // namespace Internal
 } // namespace Tiled
 
-Q_DECLARE_METATYPE(Tiled::Internal::TilesetView *)
+Q_DECLARE_METATYPE(Tiled::TilesetView *)

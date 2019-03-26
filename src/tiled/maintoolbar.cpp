@@ -32,7 +32,6 @@
 #include <QUndoGroup>
 
 namespace Tiled {
-namespace Internal {
 
 MainToolBar::MainToolBar(QWidget *parent)
     : QToolBar(parent)
@@ -59,8 +58,8 @@ MainToolBar::MainToolBar(QWidget *parent)
     mSaveAction = new QAction(this);
 
     QMenu *newMenu = new QMenu(this);
-    newMenu->addAction(ActionManager::action("file.new_map"));
-    newMenu->addAction(ActionManager::action("file.new_tileset"));
+    newMenu->addAction(ActionManager::action("NewMap"));
+    newMenu->addAction(ActionManager::action("NewTileset"));
     mNewButton->setMenu(newMenu);
     mNewButton->setPopupMode(QToolButton::InstantPopup);
 
@@ -80,9 +79,6 @@ MainToolBar::MainToolBar(QWidget *parent)
     Utils::setThemeIcon(mRedoAction, "edit-redo");
     Utils::setThemeIcon(mUndoAction, "edit-undo");
 
-#if QT_VERSION == 0x050500
-    mUndoAction->setPriority(QAction::LowPriority);
-#endif
     mRedoAction->setPriority(QAction::LowPriority);
 
     addWidget(mNewButton);
@@ -95,8 +91,8 @@ MainToolBar::MainToolBar(QWidget *parent)
     addWidget(mCommandButton);
 
     DocumentManager *documentManager = DocumentManager::instance();
-    connect(mOpenAction, SIGNAL(triggered(bool)), documentManager, SLOT(openFile()));
-    connect(mSaveAction, SIGNAL(triggered(bool)), documentManager, SLOT(saveFile()));
+    connect(mOpenAction, &QAction::triggered, documentManager, &DocumentManager::openFileDialog);
+    connect(mSaveAction, &QAction::triggered, documentManager, &DocumentManager::saveFile);
 
     connect(documentManager, &DocumentManager::currentDocumentChanged,
             this, &MainToolBar::currentDocumentChanged);
@@ -141,5 +137,4 @@ void MainToolBar::retranslateUi()
     mUndoAction->setIconText(tr("Undo"));
 }
 
-} // namespace Internal
 } // namespace Tiled
