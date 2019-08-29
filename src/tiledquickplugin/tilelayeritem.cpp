@@ -113,7 +113,7 @@ private:
 };
 
 /**
- * Draws an orthogonal tile layer by adding nodes to the scene graph. As long
+ * Draws an orthogonal tile layer by adding nodes to the scene graph. When
  * sequentially drawn tiles are using the same tileset, they will share a
  * single geometry node.
  */
@@ -131,8 +131,10 @@ static void drawOrthogonalTileLayer(QSGNode *parent,
     QVector<TileData> tileData;
     tileData.reserve(TilesNode::MaxTileCount);
 
-    for (int y = rect.top(); y <= rect.bottom(); ++y) {
-        for (int x = rect.left(); x <= rect.right(); ++x) {
+    const QRect contentRect = rect.intersected(layer->bounds().translated(-layer->position()));
+
+    for (int y = contentRect.top(); y <= contentRect.bottom(); ++y) {
+        for (int x = contentRect.left(); x <= contentRect.right(); ++x) {
             const Cell &cell = layer->cellAt(x, y);
             if (cell.isEmpty())
                 continue;
@@ -295,7 +297,7 @@ TileLayerItem::TileLayerItem(TileLayer *layer, MapRenderer *renderer,
 {
     setFlag(ItemHasContents);
 
-    connect(parent, SIGNAL(visibleAreaChanged()), SLOT(updateVisibleTiles()));
+    connect(parent, &MapItem::visibleAreaChanged, this, &TileLayerItem::updateVisibleTiles);
 
     syncWithTileLayer();
     setOpacity(mLayer->opacity());
@@ -303,7 +305,7 @@ TileLayerItem::TileLayerItem(TileLayer *layer, MapRenderer *renderer,
 
 void TileLayerItem::syncWithTileLayer()
 {
-    const QRectF boundingRect = mRenderer->boundingRect(mLayer->bounds());
+    const QRectF boundingRect = mRenderer->boundingRect(mLayer->rect());
     setPosition(boundingRect.topLeft());
     setSize(boundingRect.size());
 }
@@ -360,13 +362,13 @@ QSGNode *TileItem::updatePaintNode(QSGNode *node, QQuickItem::UpdatePaintNodeDat
         if (!helper.texture())
             return nullptr;
 
-        const Map *map = mapItem->map();
-        const int tileWidth = map->tileWidth();
-        const int tileHeight = map->tileHeight();
-
         Tile *tile = mCell.tile();
         if (!tile)
             return nullptr;   // todo: render "missing tile" marker
+
+        const Map *map = mapItem->map();
+        const int tileWidth = map->tileWidth();
+        const int tileHeight = map->tileHeight();
 
         const QSize size = tile->size();
         const QPoint offset = tileset->tileOffset();

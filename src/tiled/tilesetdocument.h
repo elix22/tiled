@@ -33,6 +33,7 @@
 
 namespace Tiled {
 
+class ObjectGroup;
 
 class MapDocument;
 class TilesetDocument;
@@ -50,7 +51,7 @@ class TilesetDocument : public Document
     Q_OBJECT
 
 public:
-    TilesetDocument(const SharedTileset &tileset, const QString &fileName = QString());
+    TilesetDocument(const SharedTileset &tileset);
     ~TilesetDocument() override;
 
     TilesetDocumentPtr sharedFromThis() { return qSharedPointerCast<TilesetDocument>(Document::sharedFromThis()); }
@@ -89,7 +90,7 @@ public:
     void removeMapDocument(MapDocument *mapDocument);
 
     void setTilesetName(const QString &name);
-    void setTilesetTileOffset(const QPoint &tileOffset);
+    void setTilesetTileOffset(QPoint tileOffset);
 
     void addTiles(const QList<Tile*> &tiles);
     void removeTiles(const QList<Tile*> &tiles);
@@ -107,6 +108,7 @@ public:
     void setTileType(Tile *tile, const QString &type);
     void setTileImage(Tile *tile, const QPixmap &image, const QUrl &source);
     void setTileProbability(Tile *tile, qreal probability);
+    void swapTileObjectGroup(Tile *tile, std::unique_ptr<ObjectGroup> &objectGroup);
 
     static TilesetDocument* findDocumentForTileset(const SharedTileset &tileset);
 
@@ -157,7 +159,7 @@ signals:
      */
     void selectedTilesChanged();
 
-private slots:
+private:
     void onPropertyAdded(Object *object, const QString &name);
     void onPropertyRemoved(Object *object, const QString &name);
     void onPropertyChanged(Object *object, const QString &name);
@@ -166,14 +168,11 @@ private slots:
     void onTerrainRemoved(Terrain *terrain);
     void onWangSetRemoved(WangSet *wangSet);
 
-private:
     SharedTileset mTileset;
-    EditableTileset *mEditableTileset = nullptr;
     QList<MapDocument*> mMapDocuments;
 
     TilesetTerrainModel *mTerrainModel;
     TilesetWangSetModel *mWangSetModel;
-    WangColorModel *mWangColorModel;
     std::unordered_map<WangSet*, std::unique_ptr<WangColorModel>> mWangColorModels;
 
     QList<Tile*> mSelectedTiles;

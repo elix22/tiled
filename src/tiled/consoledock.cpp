@@ -1,6 +1,7 @@
 /*
- * consoledialog.cpp
+ * consoledock.cpp
  * Copyright 2013, Samuli Tuomola <samuli.tuomola@gmail.com>
+ * Copyright 2018-2019, Thorbjørn Lindeijer <bjorn@lindeijer.nl>
  *
  * This file is part of Tiled.
  *
@@ -21,11 +22,12 @@
 #include "consoledock.h"
 
 #include "logginginterface.h"
-#include "pluginmanager.h"
+#include "preferences.h"
 #include "scriptmanager.h"
 
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QSettings>
 #include <QShortcut>
 #include <QVBoxLayout>
 
@@ -37,7 +39,6 @@ ConsoleDock::ConsoleDock(QWidget *parent)
     , mLineEdit(new QLineEdit)
 {
     setObjectName(QLatin1String("ConsoleDock"));
-    setWindowTitle(tr("Console"));
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);
@@ -45,14 +46,12 @@ ConsoleDock::ConsoleDock(QWidget *parent)
     layout->setSpacing(0);
 
     mPlainTextEdit->setReadOnly(true);
-    mPlainTextEdit->setStyleSheet(QLatin1String(
-                            "QAbstractScrollArea {"
-                            " background-color: black;"
-                            " color:lightgray;"
-                            "}"
-                            ));
 
-    mLineEdit->setPlaceholderText(tr("Execute script"));
+    QPalette p = mPlainTextEdit->palette();
+    p.setColor(QPalette::Base, Qt::black);
+    p.setColor(QPalette::Text, Qt::lightGray);
+    mPlainTextEdit->setPalette(p);
+
     mLineEdit->setClearButtonEnabled(true);
     connect(mLineEdit, &QLineEdit::returnPressed,
             this, &ConsoleDock::executeScript);
@@ -66,13 +65,23 @@ ConsoleDock::ConsoleDock(QWidget *parent)
     layout->addWidget(mPlainTextEdit);
     layout->addWidget(mLineEdit);
 
-    for (LoggingInterface *output : PluginManager::objects<LoggingInterface>())
-        registerOutput(output);
-
-    connect(PluginManager::instance(), &PluginManager::objectAdded,
-            this, &ConsoleDock::onObjectAdded);
+    auto& logger = LoggingInterface::instance();
+    connect(&logger, &LoggingInterface::info, this, &ConsoleDock::appendInfo);
+    connect(&logger, &LoggingInterface::warning, this, &ConsoleDock::appendWarning);
+    connect(&logger, &LoggingInterface::error, this, &ConsoleDock::appendError);
 
     setWidget(widget);
+
+    QSettings *settings = Preferences::instance()->settings();
+    mHistory = settings->value(QStringLiteral("Console/History")).toStringList();
+    mHistoryPosition = mHistory.size();
+
+    connect(this, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+        if (visible)
+            mLineEdit->setFocus();
+    });
+
+    retranslateUi();
 }
 
 ConsoleDock::~ConsoleDock()
@@ -82,6 +91,12 @@ ConsoleDock::~ConsoleDock()
 void ConsoleDock::appendInfo(const QString &str)
 {
     mPlainTextEdit->appendHtml(QLatin1String("<pre>") + str.toHtmlEscaped() +
+                               QLatin1String("</pre>"));
+}
+
+void ConsoleDock::appendWarning(const QString &str)
+{
+    mPlainTextEdit->appendHtml(QLatin1String("<pre style='color:orange'>") + str.toHtmlEscaped() +
                                QLatin1String("</pre>"));
 }
 
@@ -95,12 +110,6 @@ void ConsoleDock::appendScript(const QString &str)
 {
     mPlainTextEdit->appendHtml(QLatin1String("<pre style='color:lightgreen'>&gt; ") + str.toHtmlEscaped() +
                                QLatin1String("</pre>"));
-}
-
-void ConsoleDock::onObjectAdded(QObject *object)
-{
-    if (LoggingInterface *output = qobject_cast<LoggingInterface*>(object))
-        registerOutput(output);
 }
 
 void ConsoleDock::executeScript()
@@ -119,6 +128,11 @@ void ConsoleDock::executeScript()
 
     mHistory.append(script);
     mHistoryPosition = mHistory.size();
+
+    // Remember the last few script lines
+    QSettings *settings = Preferences::instance()->settings();
+    settings->setValue(QStringLiteral("Console/History"),
+                       QStringList(mHistory.mid(mHistory.size() - 10)));
 }
 
 void ConsoleDock::moveHistory(int direction)
@@ -135,10 +149,23 @@ void ConsoleDock::moveHistory(int direction)
     mHistoryPosition = newPosition;
 }
 
-void ConsoleDock::registerOutput(LoggingInterface *output)
+void ConsoleDock::changeEvent(QEvent *e)
 {
-    connect(output, &LoggingInterface::info, this, &ConsoleDock::appendInfo);
-    connect(output, &LoggingInterface::error, this, &ConsoleDock::appendError);
+    QDockWidget::changeEvent(e);
+
+    switch (e->type()) {
+    case QEvent::LanguageChange:
+        retranslateUi();
+        break;
+    default:
+        break;
+    }
+}
+
+void ConsoleDock::retranslateUi()
+{
+    setWindowTitle(tr("Console"));
+    mLineEdit->setPlaceholderText(tr("Execute script"));
 }
 
 } // namespace Tiled

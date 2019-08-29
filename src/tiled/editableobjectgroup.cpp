@@ -22,6 +22,7 @@
 
 #include "addremovemapobject.h"
 #include "changeobjectgroupproperties.h"
+#include "editablemanager.h"
 #include "editablemap.h"
 #include "scriptmanager.h"
 
@@ -32,21 +33,19 @@ EditableObjectGroup::EditableObjectGroup(const QString &name, QObject *parent)
 {
 }
 
-EditableObjectGroup::EditableObjectGroup(EditableMap *map,
+EditableObjectGroup::EditableObjectGroup(EditableAsset *asset,
                                          ObjectGroup *objectGroup,
                                          QObject *parent)
-    : EditableLayer(map, objectGroup, parent)
+    : EditableLayer(asset, objectGroup, parent)
 {
 }
 
 QList<QObject *> EditableObjectGroup::objects()
 {
-    if (!map()) // todo: unsupported for stand-alone object groups at the moment...
-        return QList<QObject*>();
-
+    auto &editableManager = EditableManager::instance();
     QList<QObject*> objects;
     for (MapObject *object : objectGroup()->objects())
-        objects.append(map()->editableMapObject(object));
+        objects.append(editableManager.editableMapObject(asset(), object));
     return objects;
 }
 
@@ -58,14 +57,7 @@ EditableMapObject *EditableObjectGroup::objectAt(int index)
     }
 
     auto mapObject = objectGroup()->objectAt(index);
-
-    if (map()) {
-        return map()->editableMapObject(mapObject);
-    } else {
-        // todo: what's going to ensure this object doesn't become roaming?
-        // todo: what about avoiding the creation of multiple instances pointing to the same object?
-        return new EditableMapObject(nullptr, mapObject);
-    }
+    return EditableManager::instance().editableMapObject(asset(), mapObject);
 }
 
 void EditableObjectGroup::removeObjectAt(int index)
@@ -77,12 +69,11 @@ void EditableObjectGroup::removeObjectAt(int index)
 
     auto mapObject = objectGroup()->objectAt(index);
 
-    if (map()) {
-        map()->push(new RemoveMapObjects(map()->mapDocument(), mapObject));
+    if (asset()) {
+        asset()->push(new RemoveMapObjects(asset()->document(), mapObject));
     } else {
         objectGroup()->removeObjectAt(index);
-        // todo: if there is still a EditableMapObject instance pointing to this object, it should not be deleted
-        delete mapObject;
+        EditableManager::instance().release(mapObject);
     }
 }
 
@@ -109,16 +100,13 @@ void EditableObjectGroup::insertObjectAt(int index, EditableMapObject *editableM
         return;
     }
 
-    if (map()) {
-        if (map()->push(new AddMapObjects(map()->mapDocument(),
-                                          objectGroup(),
-                                          editableMapObject->mapObject()))) {
-            editableMapObject->attach(map());
-        }
+    if (asset()) {
+        asset()->push(new AddMapObjects(asset()->document(),
+                                        objectGroup(),
+                                        editableMapObject->mapObject()));
     } else {
-        // todo: when this ObjectGroup is added to a map later, who is going to
-        // attach the EditableMapObject, which is not referenced anywhere?
         objectGroup()->insertObject(index, editableMapObject->mapObject());
+        editableMapObject->release();   // now owned by the object group
     }
 }
 
@@ -129,11 +117,11 @@ void EditableObjectGroup::addObject(EditableMapObject *editableMapObject)
 
 void EditableObjectGroup::setColor(const QColor &color)
 {
-    if (map()) {
-        map()->push(new ChangeObjectGroupProperties(map()->mapDocument(),
-                                                    objectGroup(),
-                                                    color,
-                                                    objectGroup()->drawOrder()));
+    if (asset()) {
+        asset()->push(new ChangeObjectGroupProperties(asset()->document(),
+                                                      objectGroup(),
+                                                      color,
+                                                      objectGroup()->drawOrder()));
     } else {
         objectGroup()->setColor(color);
     }

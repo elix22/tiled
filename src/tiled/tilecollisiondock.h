@@ -34,6 +34,7 @@ class Tile;
 class Tileset;
 
 class AbstractTool;
+class EditableMapObject;
 class MapScene;
 class MapView;
 class ObjectsView;
@@ -43,6 +44,8 @@ class ToolManager;
 class TileCollisionDock : public QDockWidget
 {
     Q_OBJECT
+
+    Q_PROPERTY(QList<QObject*> selectedObjects READ selectedObjectsForScript WRITE setSelectedObjectsFromScript)
 
 public:
     enum Operation {
@@ -71,6 +74,11 @@ public:
 
     bool hasSelectedObjects() const;
 
+    QList<QObject*> selectedObjectsForScript() const;
+    void setSelectedObjectsFromScript(const QList<QObject*> &selectedObjects);
+
+    Q_INVOKABLE void focusObject(Tiled::EditableMapObject *object);
+
 signals:
     void dummyMapDocumentChanged(MapDocument *mapDocument);
     void hasSelectedObjectsChanged();
@@ -89,9 +97,9 @@ public slots:
 protected:
     void changeEvent(QEvent *e) override;
 
-private slots:
-    void setSelectedTool(AbstractTool*);
+private:
     void applyChanges();
+    void documentChanged(const ChangeEvent &change);
     void tileObjectGroupChanged(Tile*);
     void tilesetTileOffsetChanged(Tileset *tileset);
 
@@ -108,7 +116,8 @@ private slots:
 
     void setObjectsViewVisibility(ObjectsViewVisibility);
 
-private:
+    MapObject *clonedObjectForScriptObject(EditableMapObject *scriptObject);
+
     void retranslateUi();
 
     Tile *mTile = nullptr;
@@ -150,3 +159,5 @@ inline bool TileCollisionDock::hasSelectedObjects() const
 }
 
 } // namespace Tiled
+
+Q_DECLARE_METATYPE(Tiled::TileCollisionDock*)

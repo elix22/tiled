@@ -72,9 +72,13 @@ class MapEditor : public Editor
 {
     Q_OBJECT
 
+    Q_PROPERTY(Tiled::TilesetDock *tilesetsView READ tilesetDock)
+
 public:
     explicit MapEditor(QObject *parent = nullptr);
     ~MapEditor() override;
+
+    TilesetDock *tilesetDock() const { return mTilesetDock; }
 
     void saveState() override;
     void restoreState() override;
@@ -101,7 +105,12 @@ public:
 
     void showMessage(const QString &text, int timeout = 0);
 
-public slots:
+    void setCurrentTileset(const SharedTileset &tileset);
+    SharedTileset currentTileset() const;
+
+    void addExternalTilesets(const QStringList &fileNames);
+
+private:
     void setSelectedTool(AbstractTool *tool);
 
     void paste(ClipboardManager::PasteFlags flags);
@@ -114,10 +123,8 @@ public slots:
 
     void selectWangBrush();
 
-    void addExternalTilesets(const QStringList &fileNames);
     void filesDroppedOnTilesetDock(const QStringList &fileNames);
 
-private slots:
     void currentWidgetChanged();
 
     void cursorChanged(const QCursor &cursor);
@@ -127,9 +134,9 @@ private slots:
     void layerComboActivated();
     void updateLayerComboIndex();
 
-private:
     void setupQuickStamps();
     void retranslateUi();
+    void showTileCollisionShapesChanged(bool enabled);
 
     void handleExternalTilesetsAndImages(const QStringList &fileNames,
                                          bool handleImages);

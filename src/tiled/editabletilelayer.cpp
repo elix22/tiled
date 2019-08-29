@@ -20,6 +20,8 @@
 
 #include "editabletilelayer.h"
 
+#include "editablemanager.h"
+#include "editablemap.h"
 #include "tilelayeredit.h"
 #include "tilesetdocument.h"
 
@@ -78,7 +80,7 @@ EditableTile *EditableTileLayer::tileAt(int x, int y) const
 
         if (auto tilesetDocument = TilesetDocument::findDocumentForTileset(tileset)) {
             EditableTileset *editable = tilesetDocument->editable();
-            return editable->editableTile(tile);
+            return EditableManager::instance().editableTile(editable, tile);
         }
     }
 

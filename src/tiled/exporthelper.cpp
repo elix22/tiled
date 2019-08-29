@@ -26,6 +26,17 @@
 namespace Tiled {
 
 /**
+ * @return the format options that should be used when writing the file.
+ */
+FileFormat::Options ExportHelper::formatOptions() const
+{
+    FileFormat::Options options;
+    if (mOptions.testFlag(Preferences::ExportMinimized))
+        options |= FileFormat::WriteMinimized;
+    return options;
+}
+
+/**
  * Prepares a tileset for export.
  *
  * \a savingTileset means that this tileset is being saved to its own file
@@ -53,6 +64,7 @@ SharedTileset ExportHelper::prepareExportTileset(const SharedTileset &tileset,
     // Either needs to be embedded or is already embedded and we may need to
     // make other changes to the tileset
     SharedTileset exportTileset = tileset->clone();
+    exportTileset->setOriginalTileset(tileset);
 
     if (mOptions.testFlag(Preferences::DetachTemplateInstances)) {
         for (Tile *tile : exportTileset->tiles()) {

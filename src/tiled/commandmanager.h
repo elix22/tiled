@@ -27,8 +27,6 @@ class QMenu;
 
 namespace Tiled {
 
-class LoggingInterface;
-
 class CommandDataModel;
 
 class CommandManager : public QObject
@@ -36,7 +34,6 @@ class CommandManager : public QObject
     Q_OBJECT
 
 public:
-
     static CommandManager *instance();
 
     static void deleteInstance();
@@ -52,8 +49,6 @@ public:
     void registerMenu(QMenu* menu);
 
     void updateActions();
-
-    LoggingInterface *logger() const { return mLogger; }
 
     void retranslateUi();
 
@@ -80,8 +75,6 @@ private:
     QList<QMenu*> mMenus;
     QList<QAction*> mActions;
     QAction *mEditCommands;
-
-    LoggingInterface *mLogger;
 };
 
 } // namespace Tiled

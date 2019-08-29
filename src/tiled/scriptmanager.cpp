@@ -24,16 +24,24 @@
 #include "editablemap.h"
 #include "editablemapobject.h"
 #include "editableobjectgroup.h"
+#include "editableselectedarea.h"
+#include "editableterrain.h"
 #include "editabletile.h"
 #include "editabletilelayer.h"
 #include "editabletileset.h"
 #include "logginginterface.h"
+#include "mapeditor.h"
 #include "regionvaluetype.h"
 #include "scriptedaction.h"
+#include "scriptedtool.h"
 #include "scriptmodule.h"
+#include "tilecollisiondock.h"
 #include "tilelayer.h"
 #include "tilelayeredit.h"
+#include "tilesetdock.h"
+#include "tileseteditor.h"
 
+#include <QDir>
 #include <QFile>
 #include <QQmlEngine>
 #include <QStandardPaths>
@@ -76,32 +84,52 @@ ScriptManager::ScriptManager(QObject *parent)
     qRegisterMetaType<EditableMap*>();
     qRegisterMetaType<EditableMapObject*>();
     qRegisterMetaType<EditableObjectGroup*>();
+    qRegisterMetaType<EditableSelectedArea*>();
+    qRegisterMetaType<EditableTerrain*>();
     qRegisterMetaType<EditableTile*>();
     qRegisterMetaType<EditableTileLayer*>();
     qRegisterMetaType<EditableTileset*>();
-    qRegisterMetaType<TileLayerEdit*>();
+    qRegisterMetaType<Font>();
+    qRegisterMetaType<MapEditor*>();
     qRegisterMetaType<RegionValueType>();
     qRegisterMetaType<ScriptedAction*>();
+    qRegisterMetaType<ScriptedTool*>();
+    qRegisterMetaType<TileCollisionDock*>();
+    qRegisterMetaType<TileLayerEdit*>();
+    qRegisterMetaType<TilesetEditor*>();
+    qRegisterMetaType<TilesetDock*>();
 
     connect(&mWatcher, &FileSystemWatcher::filesChanged,
             this, &ScriptManager::scriptFilesChanged);
 
-    initialize();
+    const QString configLocation { QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) };
+    if (!configLocation.isEmpty()) {
+        mExtensionsPath = QDir{configLocation}.filePath(QStringLiteral("extensions"));
+
+        if (!QFile::exists(mExtensionsPath))
+            QDir().mkpath(mExtensionsPath);
+
+        mExtensionsPaths.append(mExtensionsPath);
+    }
 }
 
 void ScriptManager::initialize()
 {
     QJSValue globalObject = mEngine->globalObject();
     globalObject.setProperty(QStringLiteral("tiled"), mEngine->newQObject(mModule));
-#if QT_VERSION > 0x050800
+#if QT_VERSION >= 0x050800
     globalObject.setProperty(QStringLiteral("Layer"), mEngine->newQMetaObject<EditableLayer>());
     globalObject.setProperty(QStringLiteral("MapObject"), mEngine->newQMetaObject<EditableMapObject>());
     globalObject.setProperty(QStringLiteral("ObjectGroup"), mEngine->newQMetaObject<EditableObjectGroup>());
+    globalObject.setProperty(QStringLiteral("Terrain"), mEngine->newQMetaObject<EditableTerrain>());
     globalObject.setProperty(QStringLiteral("Tile"), mEngine->newQMetaObject<EditableTile>());
     globalObject.setProperty(QStringLiteral("TileLayer"), mEngine->newQMetaObject<EditableTileLayer>());
     globalObject.setProperty(QStringLiteral("TileMap"), mEngine->newQMetaObject<EditableMap>());
     globalObject.setProperty(QStringLiteral("Tileset"), mEngine->newQMetaObject<EditableTileset>());
 #endif
+
+    evaluateStartupScripts();
+    loadExtensions();
 }
 
 QJSValue ScriptManager::evaluate(const QString &program,
@@ -117,13 +145,14 @@ QJSValue ScriptManager::evaluateFile(const QString &fileName)
     QFile file(fileName);
 
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        mModule->logger()->error(tr("Error opening file: %1").arg(fileName));
+        Tiled::ERROR(tr("Error opening file: %1").arg(fileName));
         return QJSValue();
     }
 
     const QByteArray text = file.readAll();
     const QString script = QTextCodec::codecForUtfText(text)->toUnicode(text);
 
+    Tiled::INFO(tr("Evaluating '%1'").arg(fileName));
     return evaluate(script, fileName);
 }
 
@@ -133,11 +162,40 @@ void ScriptManager::evaluateStartupScripts()
     for (const QString &configLocation : configLocations) {
         const QString scriptFile = configLocation + QLatin1String("/startup.js");
         if (QFile::exists(scriptFile)) {
-            module()->log(tr("Evaluating '%1'").arg(scriptFile));
             evaluateFile(scriptFile);
-
             mWatcher.addPath(scriptFile);
         }
+    }
+}
+
+void ScriptManager::loadExtensions()
+{
+    QStringList extensionSearchPaths;
+
+    // Each folder in an extensions path is expected to be an extension
+    for (const QString &extensionsPath : qAsConst(mExtensionsPaths)) {
+        const QDir extensionsDir(extensionsPath);
+        const QStringList dirs = extensionsDir.entryList(QDir::Dirs | QDir::Readable | QDir::NoDotAndDotDot);
+        for (const QString &dir : dirs)
+            extensionSearchPaths.append(extensionsDir.filePath(dir));
+    }
+
+    QDir::setSearchPaths(QStringLiteral("ext"), extensionSearchPaths);
+
+    for (const QString &extensionPath : extensionSearchPaths)
+        loadExtension(extensionPath);
+}
+
+void ScriptManager::loadExtension(const QString &path)
+{
+    const QDir dir(path);
+    const QStringList jsFiles = dir.entryList({ QLatin1String("*.js") },
+                                              QDir::Files | QDir::Readable);
+
+    for (const QString &jsFile : jsFiles) {
+        const QString absolutePath = dir.filePath(jsFile);
+        evaluateFile(absolutePath);
+        mWatcher.addPath(absolutePath);
     }
 }
 
@@ -161,6 +219,8 @@ void ScriptManager::checkError(QJSValue value, const QString &program)
             errorString.append(entry);
             errorString.append(QLatin1Char('\n'));
         }
+
+        errorString.chop(1);
     } else if (program.isEmpty() || program.contains(QLatin1Char('\n'))) {
         // Add line number when script spanned multiple lines
         errorString = tr("At line %1: %2")
@@ -168,7 +228,7 @@ void ScriptManager::checkError(QJSValue value, const QString &program)
                 .arg(errorString);
     }
 
-    emit mModule->logger()->error(errorString);
+    emit mModule->error(errorString);
 }
 
 void ScriptManager::throwError(const QString &message)
@@ -182,7 +242,7 @@ void ScriptManager::throwError(const QString &message)
 
 void ScriptManager::reset()
 {
-    module()->log(tr("Resetting script engine"));
+    Tiled::INFO(tr("Resetting script engine"));
 
     mWatcher.clear();
     delete mEngine;
@@ -192,12 +252,11 @@ void ScriptManager::reset()
     mModule = new ScriptModule(this);
 
     initialize();
-    evaluateStartupScripts();
 }
 
 void ScriptManager::scriptFilesChanged(const QStringList &scriptFiles)
 {
-    module()->log(tr("Script files changed: %1").arg(scriptFiles.join(QLatin1String(", "))));
+    Tiled::INFO(tr("Script files changed: %1").arg(scriptFiles.join(QLatin1String(", "))));
     reset();
 }
 

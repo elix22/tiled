@@ -22,6 +22,8 @@
 
 #include "map.h"
 
+#include "qtcompat_p.h"
+
 namespace Tiled {
 
 GroupLayer::GroupLayer(const QString &name, int x, int y):
@@ -34,10 +36,10 @@ GroupLayer::~GroupLayer()
     qDeleteAll(mLayers);
 }
 
-void GroupLayer::addLayer(Layer *layer)
+void GroupLayer::addLayer(std::unique_ptr<Layer> layer)
 {
     adoptLayer(*layer);
-    mLayers.append(layer);
+    mLayers.append(layer.release());
 }
 
 void GroupLayer::insertLayer(int index, Layer *layer)
@@ -118,10 +120,10 @@ void GroupLayer::setMap(Map *map)
     Layer::setMap(map);
 
     if (map) {
-        for (Layer *layer : mLayers)
+        for (Layer *layer : qAsConst(mLayers))
             map->adoptLayer(*layer);
     } else {
-        for (Layer *layer : mLayers)
+        for (Layer *layer : qAsConst(mLayers))
             layer->setMap(nullptr);
     }
 }
@@ -130,7 +132,7 @@ GroupLayer *GroupLayer::initializeClone(GroupLayer *clone) const
 {
     Layer::initializeClone(clone);
     for (const Layer *layer : mLayers)
-        clone->addLayer(layer->clone());
+        clone->addLayer(std::unique_ptr<Layer>{ layer->clone() });
     return clone;
 }
 

@@ -58,7 +58,7 @@ std::unique_ptr<Tiled::Map> FlarePlugin::read(const QString &fileName)
     }
 
     // default to values of the original Flare alpha game.
-    std::unique_ptr<Map> map(new Map(Map::Isometric, 256, 256, 64, 32));
+    auto map = std::make_unique<Map>(Map::Isometric, 256, 256, 64, 32);
 
     QTextStream stream (&file);
     QString line;
@@ -292,8 +292,10 @@ QString FlarePlugin::errorString() const
     return mError;
 }
 
-bool FlarePlugin::write(const Tiled::Map *map, const QString &fileName)
+bool FlarePlugin::write(const Tiled::Map *map, const QString &fileName, Options options)
 {
+    Q_UNUSED(options)
+
     SaveFile file(fileName);
 
     if (!file.open(QFile::WriteOnly | QFile::Text)) {

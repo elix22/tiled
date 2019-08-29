@@ -50,7 +50,7 @@ public:
     explicit EditableLayer(std::unique_ptr<Layer> &&layer,
                            QObject *parent = nullptr);
 
-    EditableLayer(EditableMap *map,
+    EditableLayer(EditableAsset *asset,
                   Layer *layer,
                   QObject *parent = nullptr);
     ~EditableLayer() override;
@@ -70,7 +70,10 @@ public:
     Layer *layer() const;
 
     void detach();
-    void attach(EditableMap *map);
+    void attach(EditableAsset *asset);
+    void hold();
+    Layer *release();
+    bool isOwning() const;
 
 public slots:
     void setName(const QString &name);
@@ -80,9 +83,10 @@ public slots:
     void setOffset(QPointF offset);
     void setSelected(bool selected);
 
-private:
+protected:
     MapDocument *mapDocument() const;
 
+private:
     std::unique_ptr<Layer> mDetachedLayer;
 };
 
@@ -135,6 +139,11 @@ inline bool EditableLayer::isImageLayer() const
 inline Layer *EditableLayer::layer() const
 {
     return static_cast<Layer*>(object());
+}
+
+inline bool EditableLayer::isOwning() const
+{
+    return mDetachedLayer.get() == layer();
 }
 
 } // namespace Tiled

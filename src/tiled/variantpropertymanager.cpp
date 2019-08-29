@@ -45,9 +45,9 @@ VariantPropertyManager::VariantPropertyManager(QObject *parent)
     : QtVariantPropertyManager(parent)
     , mSuggestionsAttribute(QStringLiteral("suggestions"))
     , mMultilineAttribute(QStringLiteral("multiline"))
-    , mImageMissingIcon(QStringLiteral("://images/16x16/image-missing.png"))
+    , mImageMissingIcon(QStringLiteral("://images/16/image-missing.png"))
 {
-    mImageMissingIcon.addPixmap(QPixmap(QStringLiteral("://images/32x32/image-missing.png")));
+    mImageMissingIcon.addPixmap(QPixmap(QStringLiteral("://images/32/image-missing.png")));
 
     connect(this, &QtVariantPropertyManager::valueChanged,
             this, &VariantPropertyManager::slotValueChanged);
@@ -163,7 +163,8 @@ QString VariantPropertyManager::valueText(const QtProperty *property) const
 
     if (m_alignValues.contains(const_cast<QtProperty *>(property))) {
         const Qt::Alignment v = m_alignValues.value(const_cast<QtProperty *>(property));
-        return tr("%1, %2").arg(indexHToString(alignToIndexH(v))).arg(indexVToString(alignToIndexV(v)));
+        return tr("%1, %2").arg(indexHToString(alignToIndexH(v)),
+                                indexVToString(alignToIndexV(v)));
     }
 
     auto stringAttributesIt = mStringAttributes.find(property);

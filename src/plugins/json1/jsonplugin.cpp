@@ -87,7 +87,9 @@ std::unique_ptr<Tiled::Map> JsonMapFormat::read(const QString &fileName)
     return map;
 }
 
-bool JsonMapFormat::write(const Tiled::Map *map, const QString &fileName)
+bool JsonMapFormat::write(const Tiled::Map *map,
+                          const QString &fileName,
+                          Options options)
 {
     Tiled::SaveFile file(fileName);
 
@@ -100,7 +102,7 @@ bool JsonMapFormat::write(const Tiled::Map *map, const QString &fileName)
     QVariant variant = converter.toVariant(*map, QFileInfo(fileName).dir());
 
     JsonWriter writer;
-    writer.setAutoFormatting(true);
+    writer.setAutoFormatting(!options.testFlag(WriteMinimized));
 
     if (!writer.stringify(variant)) {
         // This can only happen due to coding error
@@ -233,8 +235,6 @@ Tiled::SharedTileset JsonTilesetFormat::read(const QString &fileName)
 
     if (!tileset)
         mError = converter.errorString();
-    else
-        tileset->setFileName(fileName);
 
     return tileset;
 }
@@ -263,7 +263,8 @@ bool JsonTilesetFormat::supportsFile(const QString &fileName) const
 }
 
 bool JsonTilesetFormat::write(const Tiled::Tileset &tileset,
-                              const QString &fileName)
+                              const QString &fileName,
+                              Options options)
 {
     Tiled::SaveFile file(fileName);
 
@@ -276,7 +277,7 @@ bool JsonTilesetFormat::write(const Tiled::Tileset &tileset,
     QVariant variant = converter.toVariant(tileset, QFileInfo(fileName).dir());
 
     JsonWriter writer;
-    writer.setAutoFormatting(true);
+    writer.setAutoFormatting(!options.testFlag(WriteMinimized));
 
     if (!writer.stringify(variant)) {
         // This can only happen due to coding error

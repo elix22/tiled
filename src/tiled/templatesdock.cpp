@@ -83,17 +83,17 @@ TemplatesDock::TemplatesDock(QWidget *parent)
     toolBar->setMovable(false);
     toolBar->setIconSize(Utils::smallIconSize());
 
-    mChooseDirectory->setIcon(QIcon(QLatin1String(":/images/16x16/document-open.png")));
+    mChooseDirectory->setIcon(QIcon(QLatin1String(":/images/16/document-open.png")));
     Utils::setThemeIcon(mChooseDirectory, "document-open");
     connect(mChooseDirectory, &QAction::triggered, this, &TemplatesDock::chooseDirectory);
 
     toolBar->addAction(mChooseDirectory);
 
-    mUndoAction->setIcon(QIcon(QLatin1String(":/images/16x16/edit-undo.png")));
+    mUndoAction->setIcon(QIcon(QLatin1String(":/images/16/edit-undo.png")));
     Utils::setThemeIcon(mUndoAction, "edit-undo");
     connect(mUndoAction, &QAction::triggered, this, &TemplatesDock::undo);
 
-    mRedoAction->setIcon(QIcon(QLatin1String(":/images/16x16/edit-redo.png")));
+    mRedoAction->setIcon(QIcon(QLatin1String(":/images/16/edit-redo.png")));
     Utils::setThemeIcon(mRedoAction, "edit-redo");
     connect(mRedoAction, &QAction::triggered, this, &TemplatesDock::redo);
 
@@ -155,8 +155,6 @@ TemplatesDock::TemplatesDock(QWidget *parent)
     setWidget(widget);
     retranslateUi();
 
-    mMapScene->setSelectedTool(mToolManager->selectedTool());
-
     connect(mTemplatesView, &TemplatesView::currentTemplateChanged,
             this, &TemplatesDock::currentTemplateChanged);
 
@@ -170,7 +168,7 @@ TemplatesDock::TemplatesDock(QWidget *parent)
             this, &TemplatesDock::focusOutEvent);
 
     connect(mToolManager, &ToolManager::selectedToolChanged,
-            this, &TemplatesDock::setSelectedTool);
+            mMapScene, &MapScene::setSelectedTool);
 
     setFocusPolicy(Qt::ClickFocus);
     mMapView->setFocusProxy(this);
@@ -178,7 +176,7 @@ TemplatesDock::TemplatesDock(QWidget *parent)
 
 TemplatesDock::~TemplatesDock()
 {
-    mMapScene->disableSelectedTool();
+    mMapScene->setSelectedTool(nullptr);
 
     if (mDummyMapDocument)
         mDummyMapDocument->undoStack()->disconnect(this);
@@ -203,13 +201,6 @@ void TemplatesDock::bringToFront()
     setFocus();
 }
 
-void TemplatesDock::setSelectedTool(AbstractTool *tool)
-{
-    mMapScene->disableSelectedTool();
-    mMapScene->setSelectedTool(tool);
-    mMapScene->enableSelectedTool();
-}
-
 void TemplatesDock::setTemplate(ObjectTemplate *objectTemplate)
 {
     if (mObjectTemplate == objectTemplate)
@@ -217,7 +208,7 @@ void TemplatesDock::setTemplate(ObjectTemplate *objectTemplate)
 
     mObjectTemplate = objectTemplate;
 
-    mMapScene->disableSelectedTool();
+    mMapScene->setSelectedTool(nullptr);
     MapDocumentPtr previousDocument = mDummyMapDocument;
 
     mMapView->setEnabled(objectTemplate);
@@ -246,7 +237,7 @@ void TemplatesDock::setTemplate(ObjectTemplate *objectTemplate)
 
             mDummyMapDocument = MapDocumentPtr::create(std::move(map));
             mDummyMapDocument->setAllowHidingObjects(false);
-            mDummyMapDocument->setCurrentLayer(objectGroup);
+            mDummyMapDocument->switchCurrentLayer(objectGroup);
 
             ourDummyDocuments.insert(objectTemplate, mDummyMapDocument);
         }
@@ -268,7 +259,7 @@ void TemplatesDock::setTemplate(ObjectTemplate *objectTemplate)
     mToolManager->setMapDocument(mDummyMapDocument.data());
     mPropertiesDock->setDocument(mDummyMapDocument.data());
 
-    mMapScene->enableSelectedTool();
+    mMapScene->setSelectedTool(mToolManager->selectedTool());
 
     if (previousDocument)
         previousDocument->undoStack()->disconnect(this);
@@ -387,7 +378,7 @@ void TemplatesDock::fixTileset()
         auto tilesetDocument = DocumentManager::instance()->findTilesetDocument(tileset);
 
         if (!tilesetDocument) {
-            auto newTilesetDocument = TilesetDocumentPtr::create(tileset, tileset->fileName());
+            auto newTilesetDocument = TilesetDocumentPtr::create(tileset);
             tilesetDocument = newTilesetDocument.data();
             DocumentManager::instance()->addDocument(newTilesetDocument);
         } else {

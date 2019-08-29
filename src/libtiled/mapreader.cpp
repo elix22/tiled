@@ -271,15 +271,18 @@ std::unique_ptr<Map> MapReaderPrivate::readMap()
             atts.value(QLatin1String("renderorder")).toString();
     const Map::RenderOrder renderOrder =
             renderOrderFromString(renderOrderString);
+    const QString compressionLevelString =
+            atts.value(QLatin1String("compressionlevel")).toString();
 
     const int nextLayerId = atts.value(QLatin1String("nextlayerid")).toInt();
     const int nextObjectId = atts.value(QLatin1String("nextobjectid")).toInt();
 
-    mMap.reset(new Map(orientation, mapWidth, mapHeight, tileWidth, tileHeight, infinite));
+    mMap = std::make_unique<Map>(orientation, mapWidth, mapHeight, tileWidth, tileHeight, infinite);
     mMap->setHexSideLength(hexSideLength);
     mMap->setStaggerAxis(staggerAxis);
     mMap->setStaggerIndex(staggerIndex);
     mMap->setRenderOrder(renderOrder);
+    mMap->setCompressionLevel(compressionLevelString.toUInt());
     if (nextLayerId)
         mMap->setNextLayerId(nextLayerId);
     if (nextObjectId)
@@ -578,7 +581,7 @@ std::unique_ptr<ObjectTemplate> MapReaderPrivate::readObjectTemplate()
 {
     Q_ASSERT(xml.isStartElement() && xml.name() == QLatin1String("template"));
 
-    std::unique_ptr<ObjectTemplate> objectTemplate(new ObjectTemplate);
+    auto objectTemplate = std::make_unique<ObjectTemplate>();
 
     while (xml.readNextStartElement()) {
         if (xml.name() == QLatin1String("object"))
@@ -643,7 +646,7 @@ void MapReaderPrivate::readTilesetWangSets(Tileset &tileset)
             QString name = atts.value(QLatin1String("name")).toString();
             int tile = atts.value(QLatin1String("tile")).toInt();
 
-            std::unique_ptr<WangSet> wangSet(new WangSet(&tileset, name, tile));
+            auto wangSet = std::make_unique<WangSet>(&tileset, name, tile);
 
             while (xml.readNextStartElement()) {
                 if (xml.name() == QLatin1String("properties")) {
@@ -744,7 +747,7 @@ std::unique_ptr<TileLayer> MapReaderPrivate::readTileLayer()
     const int width = atts.value(QLatin1String("width")).toInt();
     const int height = atts.value(QLatin1String("height")).toInt();
 
-    std::unique_ptr<TileLayer> tileLayer(new TileLayer(name, x, y, width, height));
+    auto tileLayer = std::make_unique<TileLayer>(name, x, y, width, height);
     readLayerAttributes(*tileLayer, atts);
 
     while (xml.readNextStartElement()) {
@@ -779,6 +782,8 @@ void MapReaderPrivate::readTileLayerData(TileLayer &tileLayer)
             layerDataFormat = Map::Base64Gzip;
         } else if (compression == QLatin1String("zlib")) {
             layerDataFormat = Map::Base64Zlib;
+        } else if (compression == QLatin1String("zstd")) {
+            layerDataFormat = Map::Base64Zstandard;
         } else {
             xml.raiseError(tr("Compression method '%1' not supported")
                            .arg(compression.toString()));
@@ -790,6 +795,14 @@ void MapReaderPrivate::readTileLayerData(TileLayer &tileLayer)
     }
 
     mMap->setLayerDataFormat(layerDataFormat);
+
+    int chunkWidth = atts.value(QLatin1String("outputchunkwidth")).toInt();
+    int chunkHeight = atts.value(QLatin1String("outputchunkheight")).toInt();
+
+    chunkWidth = chunkWidth == 0 ? CHUNK_SIZE : qMax(CHUNK_SIZE_MIN, chunkWidth);
+    chunkHeight = chunkHeight == 0 ? CHUNK_SIZE : qMax(CHUNK_SIZE_MIN, chunkHeight);
+
+    mMap->setChunkSize(QSize(chunkWidth, chunkHeight));
 
     readTileLayerRect(tileLayer,
                       layerDataFormat,
@@ -937,7 +950,7 @@ std::unique_ptr<ObjectGroup> MapReaderPrivate::readObjectGroup()
     const int x = atts.value(QLatin1String("x")).toInt();
     const int y = atts.value(QLatin1String("y")).toInt();
 
-    std::unique_ptr<ObjectGroup> objectGroup(new ObjectGroup(name, x, y));
+    auto objectGroup = std::make_unique<ObjectGroup>(name, x, y);
     readLayerAttributes(*objectGroup, atts);
 
     const QString color = atts.value(QLatin1String("color")).toString();
@@ -975,7 +988,7 @@ std::unique_ptr<ImageLayer> MapReaderPrivate::readImageLayer()
     const int x = atts.value(QLatin1String("x")).toInt();
     const int y = atts.value(QLatin1String("y")).toInt();
 
-    std::unique_ptr<ImageLayer> imageLayer(new ImageLayer(name, x, y));
+    auto imageLayer = std::make_unique<ImageLayer>(name, x, y);
     readLayerAttributes(*imageLayer, atts);
 
     // Image layer pixel position moved from x/y to offsetx/offsety for
@@ -1035,7 +1048,7 @@ std::unique_ptr<MapObject> MapReaderPrivate::readObject()
     const QPointF pos(x, y);
     const QSizeF size(width, height);
 
-    std::unique_ptr<MapObject> object(new MapObject(name, type, pos, size));
+    auto object = std::make_unique<MapObject>(name, type, pos, size);
 
     if (!templateFileName.isEmpty()) { // This object is a template instance
         const QString absoluteFileName = p->resolveReference(templateFileName, mPath);
@@ -1120,10 +1133,10 @@ QPolygonF MapReaderPrivate::readPolygon()
             break;
         }
 
-        const qreal x = point.left(commaPos).toDouble(&ok);
+        const qreal x = point.leftRef(commaPos).toDouble(&ok);
         if (!ok)
             break;
-        const qreal y = point.mid(commaPos + 1).toDouble(&ok);
+        const qreal y = point.midRef(commaPos + 1).toDouble(&ok);
         if (!ok)
             break;
 
@@ -1205,7 +1218,7 @@ std::unique_ptr<GroupLayer> MapReaderPrivate::readGroupLayer()
     const int x = atts.value(QLatin1String("x")).toInt();
     const int y = atts.value(QLatin1String("y")).toInt();
 
-    std::unique_ptr<GroupLayer> groupLayer(new GroupLayer(name, x, y));
+    auto groupLayer = std::make_unique<GroupLayer>(name, x, y);
     readLayerAttributes(*groupLayer, atts);
 
     while (xml.readNextStartElement()) {
@@ -1330,11 +1343,7 @@ SharedTileset MapReader::readTileset(const QString &fileName)
     if (!d->openFile(&file))
         return SharedTileset();
 
-    SharedTileset tileset = readTileset(&file, QFileInfo(fileName).absolutePath());
-    if (tileset)
-        tileset->setFileName(fileName);
-
-    return tileset;
+    return readTileset(&file, QFileInfo(fileName).absolutePath());
 }
 
 std::unique_ptr<ObjectTemplate> MapReader::readObjectTemplate(QIODevice *device, const QString &path)

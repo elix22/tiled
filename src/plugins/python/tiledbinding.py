@@ -56,6 +56,7 @@ mod.add_include('"pythonplugin.h"')
 mod.add_include('"grouplayer.h"')
 mod.add_include('"imagelayer.h"')
 mod.add_include('"layer.h"')
+mod.add_include('"logginginterface.h"')
 mod.add_include('"map.h"')
 mod.add_include('"mapobject.h"')
 mod.add_include('"objectgroup.h"')
@@ -90,6 +91,7 @@ cls_object.add_method('setProperty', None,
     [('QString','prop'),('int','val')])
 cls_object.add_method('setProperty', None,
     [('QString','prop'),('bool','val')])
+cls_object.add_method('propertyType', 'QString', [('QString','prop')])
 
 cls_tile = tiled.add_class('Tile', cls_object)
 cls_tile.add_method('id', 'int', [])
@@ -98,6 +100,7 @@ cls_tile.add_method('setImage', None, [('const QPixmap&','image')])
 cls_tile.add_method('width', 'int', [])
 cls_tile.add_method('height', 'int', [])
 cls_tile.add_method('size', 'QSize', [])
+cls_tile.add_method('type', 'QString', [])
 
 cls_tileset = tiled.add_class('Tileset', cls_object)
 cls_sharedtileset = tiled.add_class('SharedTileset')
@@ -280,6 +283,7 @@ cls_mapobject.add_method('name', 'QString', [])
 cls_mapobject.add_method('setName', None, [('QString','n')])
 cls_mapobject.add_method('type', 'QString', [])
 cls_mapobject.add_method('setType', None, [('QString','n')])
+cls_mapobject.add_method('effectiveType', 'QString', [])
 
 cls_objectgroup.add_constructor([('QString','name'), ('int','x'), ('int','y')])
 cls_objectgroup.add_method('addObject', None,
@@ -401,9 +405,8 @@ cls_pp = mod.add_class('PythonScript',
  PythonPlugin implements LoggingInterface for messaging to Tiled
 """
 cls_logi = tiled.add_class('LoggingInterface', destructor_visibility='private')
-cls_logi.add_enum('OutputType', ('INFO','ERROR'))
-cls_logi.add_method('log', 'void', [('OutputType','type'),('const QString','msg')],
-    is_virtual=True)
+cls_logi.add_enum('OutputType', ('INFO','WARNING','ERROR'))
+cls_logi.add_method('log', 'void', [('OutputType','type'),('const QString','msg')])
 
 
 with open('pythonbind.cpp','w') as fh:

@@ -60,10 +60,9 @@ public:
     MapDocument *mapDocument() const;
     void setMapDocument(MapDocument *map);
 
-    QRectF mapBoundingRect() const;
+    void setShowTileCollisionShapes(bool enabled);
 
-    void enableSelectedTool();
-    void disableSelectedTool();
+    QRectF mapBoundingRect() const;
 
     void setSelectedTool(AbstractTool *tool);
 
@@ -84,18 +83,14 @@ protected:
     void dragLeaveEvent(QGraphicsSceneDragDropEvent *event) override;
     void dragMoveEvent(QGraphicsSceneDragDropEvent *event) override;
 
-private slots:
+private:
     void refreshScene();
 
     void mapChanged();
     void repaintTileset(Tileset *tileset);
 
-    void adaptToTilesetTileSizeChanges();
-    void adaptToTileSizeChanges();
+    void tilesetReplaced(int index, Tileset *tileset, Tileset *oldTileset);
 
-    void tilesetReplaced();
-
-private:
     void updateDefaultBackgroundColor();
     void updateSceneRect();
 
@@ -104,12 +99,12 @@ private:
 
     bool eventFilter(QObject *object, QEvent *event) override;
 
-    MapDocument *mMapDocument;
+    MapDocument *mMapDocument = nullptr;
     QHash<MapDocument*, MapItem*> mMapItems;
-    AbstractTool *mSelectedTool;
-    AbstractTool *mActiveTool;
-    bool mUnderMouse;
-    Qt::KeyboardModifiers mCurrentModifiers;
+    AbstractTool *mSelectedTool = nullptr;
+    bool mUnderMouse = false;
+    bool mShowTileCollisionShapes = false;
+    Qt::KeyboardModifiers mCurrentModifiers = Qt::NoModifier;
     QPointF mLastMousePos;
     QColor mDefaultBackgroundColor;
 };

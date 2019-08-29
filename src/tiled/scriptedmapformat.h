@@ -34,6 +34,7 @@ class ScriptedMapFormat final : public MapFormat
 public:
     ScriptedMapFormat(const QString &shortName, const QJSValue &object,
                       QObject *parent = nullptr);
+    ~ScriptedMapFormat() override;
 
     // FileFormat interface
     Capabilities capabilities() const override;
@@ -47,7 +48,7 @@ public:
     QStringList outputFiles(const Map *map, const QString &fileName) const override;
 #endif
     std::unique_ptr<Map> read(const QString &fileName) override;
-    bool write(const Map *map, const QString &fileName) override;
+    bool write(const Map *map, const QString &fileName, Options options) override;
 
     static bool validateMapFormatObject(const QJSValue &value);
 

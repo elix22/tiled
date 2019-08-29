@@ -20,10 +20,13 @@
 
 #include "editabletileset.h"
 
+#include "editablemanager.h"
+#include "editableterrain.h"
 #include "editabletile.h"
 #include "scriptmanager.h"
 #include "tilesetchanges.h"
 #include "tilesetdocument.h"
+#include "tilesetterrainmodel.h"
 
 namespace Tiled {
 
@@ -40,15 +43,16 @@ EditableTileset::EditableTileset(TilesetDocument *tilesetDocument,
     : EditableAsset(tilesetDocument, tilesetDocument->tileset().data(), parent)
 {
     connect(tilesetDocument, &Document::fileNameChanged, this, &EditableAsset::fileNameChanged);
+    connect(tilesetDocument, &TilesetDocument::tilesAdded, this, &EditableTileset::attachTiles);
     connect(tilesetDocument, &TilesetDocument::tilesRemoved, this, &EditableTileset::detachTiles);
+    connect(tilesetDocument, &TilesetDocument::tileObjectGroupChanged, this, &EditableTileset::tileObjectGroupChanged);
+    connect(tilesetDocument->terrainModel(), &TilesetTerrainModel::terrainAdded, this, &EditableTileset::terrainAdded);
 }
 
 EditableTileset::~EditableTileset()
 {
-    // Operate on copy since original container will get modified
-    const auto editableTiles = mEditableTiles;
-    for (auto editable : editableTiles)
-        editable->detach();
+    detachTiles(tileset()->tiles().values());
+    detachTerrains(tileset()->terrains());
 }
 
 EditableTile *EditableTileset::tile(int id)
@@ -60,15 +64,64 @@ EditableTile *EditableTileset::tile(int id)
         return nullptr;
     }
 
-    return editableTile(tile);
+    return EditableManager::instance().editableTile(this, tile);
 }
 
 QList<QObject*> EditableTileset::tiles()
 {
+    auto &editableManager = EditableManager::instance();
     QList<QObject*> tiles;
     for (Tile *tile : tileset()->tiles())
-        tiles.append(editableTile(tile));
+        tiles.append(editableManager.editableTile(this, tile));
     return tiles;
+}
+
+QList<QObject *> EditableTileset::terrains()
+{
+    auto &editableManager = EditableManager::instance();
+    QList<QObject*> terrains;
+    for (Terrain *terrain : tileset()->terrains())
+        terrains.append(editableManager.editableTerrain(this, terrain));
+    return terrains;
+}
+
+QList<QObject *> EditableTileset::selectedTiles()
+{
+    if (!tilesetDocument())
+        return QList<QObject*>();
+
+    QList<QObject*> selectedTiles;
+
+    auto &editableManager = EditableManager::instance();
+    for (Tile *tile : tilesetDocument()->selectedTiles())
+        selectedTiles.append(editableManager.editableTile(this, tile));
+
+    return selectedTiles;
+}
+
+void EditableTileset::setSelectedTiles(const QList<QObject *> &tiles)
+{
+    auto document = tilesetDocument();
+    if (!document)
+        return;
+
+    QList<Tile*> plainTiles;
+
+    for (QObject *tileObject : tiles) {
+        auto editableTile = qobject_cast<EditableTile*>(tileObject);
+        if (!editableTile) {
+            ScriptManager::instance().throwError(tr("Not a tile"));
+            return;
+        }
+        if (editableTile->tileset() != this) {
+            ScriptManager::instance().throwError(tr("Tile not from this tileset"));
+            return;
+        }
+
+        plainTiles.append(editableTile->tile());
+    }
+
+    document->setSelectedTiles(plainTiles);
 }
 
 TilesetDocument *EditableTileset::tilesetDocument() const
@@ -100,24 +153,50 @@ void EditableTileset::setBackgroundColor(const QColor &color)
         tileset()->setBackgroundColor(color);
 }
 
-void EditableTileset::detachTiles(const QList<Tile *> &tiles)
+void EditableTileset::attachTiles(const QList<Tile *> &tiles)
 {
+    const auto &editableManager = EditableManager::instance();
     for (Tile *tile : tiles) {
-        auto iterator = mEditableTiles.constFind(tile);
-        if (iterator != mEditableTiles.constEnd())
-            (*iterator)->detach();
+        if (EditableTile *editable = editableManager.find(tile))
+            editable->attach(this);
     }
 }
 
-EditableTile *EditableTileset::editableTile(Tile *tile)
+void EditableTileset::detachTiles(const QList<Tile *> &tiles)
+{
+    const auto &editableManager = EditableManager::instance();
+    for (Tile *tile : tiles) {
+        if (auto editable = editableManager.find(tile)) {
+            Q_ASSERT(editable->tileset() == this);
+            editable->detach();
+        }
+    }
+}
+
+void EditableTileset::detachTerrains(const QList<Terrain *> &terrains)
+{
+    const auto &editableManager = EditableManager::instance();
+    for (Terrain *terrain: terrains) {
+        if (auto editable = editableManager.find(terrain)) {
+            Q_ASSERT(editable->tileset() == this);
+            editable->detach();
+        }
+    }
+}
+
+void EditableTileset::tileObjectGroupChanged(Tile *tile)
 {
     Q_ASSERT(tile->tileset() == tileset());
 
-    EditableTile* &editableTile = mEditableTiles[tile];
-    if (!editableTile)
-        editableTile = new EditableTile(this, tile);
+    if (auto editable = EditableManager::instance().find(tile))
+        if (editable->attachedObjectGroup() != tile->objectGroup())
+            editable->detachObjectGroup();
+}
 
-    return editableTile;
+void EditableTileset::terrainAdded(Tileset *tileset, int terrainId)
+{
+    if (auto editable = EditableManager::instance().find(tileset->terrain(terrainId)))
+        editable->attach(this);
 }
 
 } // namespace Tiled

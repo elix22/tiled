@@ -31,22 +31,20 @@
 #include <QLatin1String>
 #include <QMenu>
 
+#include "qtcompat_p.h"
+
 namespace Tiled {
 
 CommandManager *CommandManager::mInstance;
 
 CommandManager::CommandManager()
     : mModel(new CommandDataModel(this))
-    , mLogger(new LoggingInterface(this))
 {
     updateActions();
-
-    PluginManager::addObject(mLogger);
 }
 
 CommandManager::~CommandManager()
 {
-    PluginManager::removeObject(mLogger);
 }
 
 CommandManager *CommandManager::instance()
@@ -83,7 +81,7 @@ void CommandManager::showDialog()
 
 void CommandManager::populateMenus()
 {
-    for (QMenu *menu : mMenus) {
+    for (QMenu *menu : qAsConst(mMenus)) {
         menu->clear();
         menu->addActions(mActions);
     }
@@ -105,7 +103,7 @@ void CommandManager::updateActions()
         QAction *mAction = new QAction(command.name, this);
         mAction->setShortcut(command.shortcut);
 
-        connect(mAction, &QAction::triggered, [this,i]() { mModel->execute(i); });
+        connect(mAction, &QAction::triggered, [this,i] { mModel->execute(i); });
 
         mActions.append(mAction);
     }
@@ -118,7 +116,7 @@ void CommandManager::updateActions()
 
     mEditCommands = new QAction(this);
     mEditCommands->setIcon(
-            QIcon(QLatin1String(":/images/24x24/system-run.png")));
+            QIcon(QLatin1String(":/images/24/system-run.png")));
     Utils::setThemeIcon(mEditCommands, "system-run");
 
     connect(mEditCommands, &QAction::triggered, this, &CommandManager::showDialog);

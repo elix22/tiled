@@ -34,6 +34,7 @@ class MapObject;
 class Map;
 class ObjectGroup;
 
+class ChangeEvent;
 class MapDocument;
 
 /**
@@ -86,34 +87,18 @@ public:
     void setMapDocument(MapDocument *mapDocument);
     MapDocument *mapDocument() const { return mMapDocument; }
 
-    void insertObject(ObjectGroup *og, int index, MapObject *o);
-    int removeObject(ObjectGroup *og, MapObject *o);
     void moveObjects(ObjectGroup *og, int from, int to, int count);
 
-    void setObjectPolygon(MapObject *o, const QPolygonF &polygon);
-    void setObjectPosition(MapObject *o, const QPointF &pos);
-    void setObjectSize(MapObject *o, const QSizeF &size);
-    void setObjectRotation(MapObject *o, qreal rotation);
-
-    void setObjectProperty(MapObject *o, MapObject::Property property, const QVariant &value);
-    void emitObjectsChanged(const QList<MapObject *> &objects,
-                            const QList<Column> &columns = QList<Column>(),
-                            const QVector<int> &roles = QVector<int>());
-    void emitObjectsChanged(const QList<MapObject*> &objects, Column column);
-
-signals:
-    void objectsAdded(const QList<MapObject *> &objects);
-    void objectsChanged(const QList<MapObject *> &objects);
-    void objectsTypeChanged(const QList<MapObject *> &objects);
-    void objectsRemoved(const QList<MapObject *> &objects);
-
-private slots:
+private:
     void layerAdded(Layer *layer);
-    void layerChanged(Layer *layer);
     void layerAboutToBeRemoved(GroupLayer *groupLayer, int index);
     void tileTypeChanged(Tile *tile);
+    void documentChanged(const ChangeEvent &change);
 
-private:
+    void emitDataChanged(const QList<MapObject *> &objects,
+                         const QVarLengthArray<Column, 3> &columns,
+                         const QVector<int> &roles = QVector<int>());
+
     MapDocument *mMapDocument;
     Map *mMap;
 
@@ -122,6 +107,13 @@ private:
     QList<Layer *> &filteredChildLayers(GroupLayer *parentLayer) const;
 
     QIcon mObjectGroupIcon;
+    QIcon mRectangleIcon;
+    QIcon mImageIcon;
+    QIcon mPolygonIcon;
+    QIcon mPolylineIcon;
+    QIcon mEllipseIcon;
+    QIcon mTextIcon;
+    QIcon mPointIcon;
 };
 
 } // namespace Tiled

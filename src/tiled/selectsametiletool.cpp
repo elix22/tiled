@@ -29,13 +29,13 @@ using namespace Tiled;
 SelectSameTileTool::SelectSameTileTool(QObject *parent)
     : AbstractTileSelectionTool(tr("Select Same Tile"),
                                 QIcon(QLatin1String(
-                                      ":images/22x22/stock-tool-by-color-select.png")),
+                                      ":images/22/stock-tool-by-color-select.png")),
                                 QKeySequence(tr("S")),
                                 parent)
 {
 }
 
-void SelectSameTileTool::tilePositionChanged(const QPoint &tilePos)
+void SelectSameTileTool::tilePositionChanged(QPoint tilePos)
 {
     // Make sure that a tile layer is selected and contains current tile pos.
     TileLayer *tileLayer = currentTileLayer();

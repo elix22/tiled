@@ -47,6 +47,8 @@
 
 #include <QtMath>
 
+#include "qtcompat_p.h"
+
 using namespace Tiled;
 
 static bool isTileObject(MapObject *mapObject)
@@ -83,15 +85,15 @@ AbstractObjectTool::AbstractObjectTool(const QString &name,
     : AbstractTool(name, icon, shortcut, parent)
     , mMapScene(nullptr)
 {
-    QIcon flipHorizontalIcon(QLatin1String(":images/24x24/flip-horizontal.png"));
-    QIcon flipVerticalIcon(QLatin1String(":images/24x24/flip-vertical.png"));
-    QIcon rotateLeftIcon(QLatin1String(":images/24x24/rotate-left.png"));
-    QIcon rotateRightIcon(QLatin1String(":images/24x24/rotate-right.png"));
+    QIcon flipHorizontalIcon(QLatin1String(":images/24/flip-horizontal.png"));
+    QIcon flipVerticalIcon(QLatin1String(":images/24/flip-vertical.png"));
+    QIcon rotateLeftIcon(QLatin1String(":images/24/rotate-left.png"));
+    QIcon rotateRightIcon(QLatin1String(":images/24/rotate-right.png"));
 
-    flipHorizontalIcon.addFile(QLatin1String(":images/32x32/flip-horizontal.png"));
-    flipVerticalIcon.addFile(QLatin1String(":images/32x32/flip-vertical.png"));
-    rotateLeftIcon.addFile(QLatin1String(":images/32x32/rotate-left.png"));
-    rotateRightIcon.addFile(QLatin1String(":images/32x32/rotate-right.png"));
+    flipHorizontalIcon.addFile(QLatin1String(":images/32/flip-horizontal.png"));
+    flipVerticalIcon.addFile(QLatin1String(":images/32/flip-vertical.png"));
+    rotateLeftIcon.addFile(QLatin1String(":images/32/rotate-left.png"));
+    rotateRightIcon.addFile(QLatin1String(":images/32/rotate-right.png"));
 
     mFlipHorizontal = new QAction(this);
     mFlipHorizontal->setIcon(flipHorizontalIcon);
@@ -262,7 +264,7 @@ void AbstractObjectTool::resetTileSize()
     if (!commands.isEmpty()) {
         QUndoStack *undoStack = mapDocument()->undoStack();
         undoStack->beginMacro(tr("Reset Tile Size"));
-        for (auto command : commands)
+        for (auto command : qAsConst(commands))
             undoStack->push(command);
         undoStack->endMacro();
     }
@@ -345,7 +347,7 @@ void AbstractObjectTool::detachSelectedObjects()
     auto changeMapObjectCommand = new DetachObjects(currentMapDocument, templateInstances);
 
     // Add any missing tileset used by the templates to the map map before detaching
-    for (SharedTileset sharedTileset : sharedTilesets) {
+    for (const SharedTileset &sharedTileset : qAsConst(sharedTilesets)) {
         if (!currentMapDocument->map()->tilesets().contains(sharedTileset))
             new AddTileset(currentMapDocument, sharedTileset, changeMapObjectCommand);
     }
@@ -453,8 +455,8 @@ void AbstractObjectTool::showContextMenu(MapObject *clickedObject,
     QAction *removeAction = menu.addAction(tr("Remove %n Object(s)", "", selectedObjects.size()),
                                            this, SLOT(removeObjects()));
 
-    duplicateAction->setIcon(QIcon(QLatin1String(":/images/16x16/stock-duplicate-16.png")));
-    removeAction->setIcon(QIcon(QLatin1String(":/images/16x16/edit-delete.png")));
+    duplicateAction->setIcon(QIcon(QLatin1String(":/images/16/stock-duplicate-16.png")));
+    removeAction->setIcon(QIcon(QLatin1String(":/images/16/edit-delete.png")));
 
     bool anyTileObjectSelected = std::any_of(selectedObjects.begin(),
                                              selectedObjects.end(),
@@ -539,7 +541,7 @@ void AbstractObjectTool::showContextMenu(MapObject *clickedObject,
     }
 
     menu.addSeparator();
-    QIcon propIcon(QLatin1String(":images/16x16/document-properties.png"));
+    QIcon propIcon(QLatin1String(":images/16/document-properties.png"));
     QAction *propertiesAction = menu.addAction(propIcon,
                                                tr("Object &Properties..."));
 

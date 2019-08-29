@@ -47,11 +47,12 @@ class TileLayer;
 class Tileset;
 
 class Document;
+class EditableTileset;
 class MapDocument;
+class TileStamp;
 class TilesetDocument;
 class TilesetDocumentsFilterModel;
 class TilesetView;
-class TileStamp;
 class Zoomable;
 
 /**
@@ -62,13 +63,15 @@ class TilesetDock : public QDockWidget
 {
     Q_OBJECT
 
+    Q_PROPERTY(Tiled::EditableTileset *currentTileset READ currentEditableTileset WRITE setCurrentEditableTileset)
+
 public:
     /**
      * Constructor.
      */
     TilesetDock(QWidget *parent = nullptr);
 
-    ~TilesetDock();
+    ~TilesetDock() override;
 
     /**
      * Sets the map for which the tilesets should be displayed.
@@ -79,6 +82,12 @@ public:
      * Returns the currently selected tile.
      */
     Tile *currentTile() const { return mCurrentTile; }
+
+    void setCurrentTileset(const SharedTileset &tileset);
+    SharedTileset currentTileset() const;
+
+    void setCurrentEditableTileset(EditableTileset *tileset);
+    EditableTileset *currentEditableTileset() const;
 
     void selectTilesInStamp(const TileStamp &);
 
@@ -105,7 +114,7 @@ protected:
     void dragEnterEvent(QDragEnterEvent *) override;
     void dropEvent(QDropEvent *) override;
 
-private slots:
+private:
     void currentTilesetChanged();
     void selectionChanged();
     void currentChanged(const QModelIndex &index);
@@ -132,7 +141,6 @@ private slots:
 
     void swapTiles(Tile *tileA, Tile *tileB);
 
-private:
     void setCurrentTile(Tile *tile);
     void setCurrentTiles(TileLayer *tiles);
     void retranslateUi();
@@ -146,7 +154,6 @@ private:
     void onTabMoved(int from, int to);
     void tabContextMenuRequested(const QPoint &pos);
 
-    Tileset *currentTileset() const;
     TilesetView *currentTilesetView() const;
     TilesetView *tilesetViewAt(int index) const;
 

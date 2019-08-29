@@ -236,11 +236,11 @@ TilesetDock::TilesetDock(QWidget *parent)
     horizontal->addWidget(mToolBar, 1);
     vertical->addLayout(horizontal);
 
-    mNewTileset->setIcon(QIcon(QLatin1String(":images/16x16/document-new.png")));
-    mEmbedTileset->setIcon(QIcon(QLatin1String(":images/16x16/document-import.png")));
-    mExportTileset->setIcon(QIcon(QLatin1String(":images/16x16/document-export.png")));
-    mEditTileset->setIcon(QIcon(QLatin1String(":images/16x16/document-properties.png")));
-    mDeleteTileset->setIcon(QIcon(QLatin1String(":images/16x16/edit-delete.png")));
+    mNewTileset->setIcon(QIcon(QLatin1String(":images/16/document-new.png")));
+    mEmbedTileset->setIcon(QIcon(QLatin1String(":images/16/document-import.png")));
+    mExportTileset->setIcon(QIcon(QLatin1String(":images/16/document-export.png")));
+    mEditTileset->setIcon(QIcon(QLatin1String(":images/16/document-properties.png")));
+    mDeleteTileset->setIcon(QIcon(QLatin1String(":images/16/edit-delete.png")));
 
     Utils::setThemeIcon(mNewTileset, "document-new");
     Utils::setThemeIcon(mEmbedTileset, "document-import");
@@ -350,7 +350,7 @@ void TilesetDock::selectTilesInStamp(const TileStamp &stamp)
         return;
 
     QSet<Tile*> processed;
-    QMap<QItemSelectionModel*, QItemSelection> selections;
+    QHash<QItemSelectionModel*, QItemSelection> selections;
 
     for (const TileStampVariation &variation : stamp.variations()) {
         for (auto layer : variation.map->tileLayers()) {
@@ -424,7 +424,8 @@ void TilesetDock::dragEnterEvent(QDragEnterEvent *e)
 void TilesetDock::dropEvent(QDropEvent *e)
 {
     QStringList paths;
-    for (const QUrl &url : e->mimeData()->urls()) {
+    const auto urls = e->mimeData()->urls();
+    for (const QUrl &url : urls) {
         const QString localFile = url.toLocalFile();
         if (!localFile.isEmpty())
             paths.append(localFile);
@@ -806,11 +807,7 @@ void TilesetDock::onTilesetDataChanged(const QModelIndex &topLeft, const QModelI
 
 void TilesetDock::onTabMoved(int from, int to)
 {
-#if QT_VERSION >= 0x050600
     mTilesets.move(from, to);
-#else
-    mTilesets.insert(to, mTilesets.takeAt(from));
-#endif
     mTilesetDocuments.move(from, to);
 
     // Move the related tileset view
@@ -835,13 +832,34 @@ void TilesetDock::tabContextMenuRequested(const QPoint &pos)
     menu.exec(mTabBar->mapToGlobal(pos));
 }
 
-Tileset *TilesetDock::currentTileset() const
+void TilesetDock::setCurrentTileset(const SharedTileset &tileset)
+{
+    const int index = mTilesets.indexOf(tileset);
+    if (index != -1)
+        mTabBar->setCurrentIndex(index);
+}
+
+SharedTileset TilesetDock::currentTileset() const
+{
+    const int index = mTabBar->currentIndex();
+    if (index == -1)
+        return {};
+
+    return mTilesets.at(index);
+}
+
+void TilesetDock::setCurrentEditableTileset(EditableTileset *tileset)
+{
+    setCurrentTileset(tileset->tileset()->sharedPointer());
+}
+
+EditableTileset *TilesetDock::currentEditableTileset() const
 {
     const int index = mTabBar->currentIndex();
     if (index == -1)
         return nullptr;
 
-    return mTilesets.at(index).data();
+    return mTilesetDocuments.at(index)->editable();
 }
 
 TilesetView *TilesetDock::currentTilesetView() const
@@ -869,24 +887,24 @@ void TilesetDock::setupTilesetModel(TilesetView *view, Tileset *tileset)
 
 void TilesetDock::editTileset()
 {
-    Tileset *tileset = currentTileset();
+    auto tileset = currentTileset();
     if (!tileset)
         return;
 
     DocumentManager *documentManager = DocumentManager::instance();
-    documentManager->openTileset(tileset->sharedPointer());
+    documentManager->openTileset(tileset);
 }
 
 void TilesetDock::exportTileset()
 {
-    Tileset *tileset = currentTileset();
+    auto tileset = currentTileset();
     if (!tileset)
         return;
 
     if (tileset->isExternal())
         return;
 
-    int mapTilesetIndex = mMapDocument->map()->tilesets().indexOf(tileset->sharedPointer());
+    int mapTilesetIndex = mMapDocument->map()->tilesets().indexOf(tileset);
     if (mapTilesetIndex == -1)
         return;
 
@@ -948,7 +966,7 @@ void TilesetDock::exportTileset()
 
 void TilesetDock::embedTileset()
 {
-    Tileset *tileset = currentTileset();
+    auto tileset = currentTileset();
     if (!tileset)
         return;
 
@@ -960,7 +978,7 @@ void TilesetDock::embedTileset()
     SharedTileset embeddedTileset = tileset->clone();
 
     QUndoStack *undoStack = mMapDocument->undoStack();
-    int mapTilesetIndex = mMapDocument->map()->tilesets().indexOf(tileset->sharedPointer());
+    int mapTilesetIndex = mMapDocument->map()->tilesets().indexOf(tileset);
 
     // Tileset may not be part of the map yet
     if (mapTilesetIndex == -1)
